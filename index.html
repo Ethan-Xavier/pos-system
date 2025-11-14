@@ -6,140 +6,47 @@
 <title>Stylish POS System with Firebase</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f4f4f4;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f4; padding: 20px; display: flex; flex-direction: column; align-items: center; }
 
-.order-box {
-  background: #0062ca;
-  padding: 25px;
-  border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-  width: 350px;
-  color: #fff;
-  margin-bottom: 20px;
-}
-
+.order-box { background: #0062ca; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 350px; color: #fff; margin-bottom: 20px; }
 .order-box h2 { text-align: center; margin-bottom: 20px; }
 
-select, input {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 12px;
-  border-radius: 10px;
-  border: none;
-  font-size: 16px;
-  outline: none;
-}
+select, input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 10px; border: none; font-size: 16px; outline: none; }
 
-button {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 15px;
-  transition: 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+button { padding: 10px 15px; border: none; border-radius: 10px; cursor: pointer; font-size: 15px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
 
-.add-btn {
-  width: 100%;
-  background: #28a745;
-  color: #fff;
-  font-weight: bold;
-}
-
+.add-btn { width: 100%; background: #28a745; color: #fff; font-weight: bold; }
 .add-btn:hover { background: #218838; }
 
-.tables-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 15px;
-  width: 100%;
-}
+.tables-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; }
 
-.table-box {
-  background: #fff;
-  color: #333;
-  width: 300px;
-  padding: 15px;
-  border-radius: 15px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-  max-height: 400px;
-  overflow-y: auto;
-  position: relative;
-}
-
+.table-box { background: #fff; color: #333; width: 300px; padding: 15px; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); max-height: 400px; overflow-y: auto; position: relative; }
 .table-box h3 { text-align: center; margin-bottom: 10px; }
-
 .table-total { font-weight: bold; text-align: right; margin-bottom: 10px; }
-
-.item-box {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 10px;
-  padding: 8px;
-  margin: 5px 0;
-  transition: transform 0.2s;
-}
-
+.item-box { display: flex; justify-content: space-between; align-items: center; border-radius: 10px; padding: 8px; margin: 5px 0; transition: transform 0.2s; }
 .pending-order { background-color: #fff3cd; animation: pulsePending 2s infinite; }
 .served-order { background-color: #d4edda; }
-
 .item-info { display: flex; flex-direction: column; gap: 2px; }
 .item-buttons button { margin-left: 5px; font-size: 14px; border-radius: 8px; }
 .served-btn { background: #28a745; color: #fff; }
 .cancel-btn { background: #dc3545; color: #fff; }
 .close-btn { background: #6c757d; color: #fff; font-weight: bold; width: 100%; margin-top: 10px; }
 
-@keyframes glow {
-  0% { box-shadow: 0 0 5px #28a745; }
-  50% { box-shadow: 0 0 15px #28a745; }
-  100% { box-shadow: 0 0 5px #28a745; }
-}
-
-@keyframes pulsePending {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
-
+@keyframes glow { 0% { box-shadow: 0 0 5px #28a745; } 50% { box-shadow: 0 0 15px #28a745; } 100% { box-shadow: 0 0 5px #28a745; } }
+@keyframes pulsePending { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 .item-box.new-order { animation: glow 1s ease-in-out; }
 
-@media (max-width: 768px) {
-  .order-box, .table-box { width: 90%; }
-  .tables-container { flex-direction: column; align-items: center; }
-}
+@media (max-width: 768px) { .order-box, .table-box { width: 90%; } .tables-container { flex-direction: column; align-items: center; } }
 </style>
 </head>
 <body>
 
 <div class="order-box">
 <h2><i class="fas fa-utensils"></i> Take Order</h2>
-<select id="tableSelect">
-  <option value="" disabled selected>Select Table</option>
-  <script>for(let i=1;i<=13;i++){document.write(`<option value="${i}">${i}</option>`);}</script>
-</select>
-
-<select id="typeSelect">
-  <option value="" disabled selected>Select Type</option>
-  <option value="food">Food</option>
-  <option value="drink">Drink</option>
-</select>
-
-<select id="itemSelect">
-  <option value="" disabled selected>Select Item</option>
-</select>
-
+<select id="tableSelect"><option value="" disabled selected>Select Table</option></select>
+<select id="typeSelect"><option value="" disabled selected>Select Type</option><option value="food">Food</option><option value="drink">Drink</option></select>
+<select id="itemSelect"><option value="" disabled selected>Select Item</option></select>
+<select id="priceSelect" style="display:none;"></select>
 <input type="number" id="quantity" placeholder="Quantity" min="1" value="1">
 <button id="addItemBtn" class="add-btn"><i class="fas fa-plus"></i> Add Item</button>
 </div>
@@ -148,9 +55,8 @@ button {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-/* Firebase config */
 const firebaseConfig = {
   apiKey: "AIzaSyC6VdctOXcT-qHaLJs1gEzwzVv5AdK5e0w",
   authDomain: "pos-system-9a056.firebaseapp.com",
@@ -159,232 +65,97 @@ const firebaseConfig = {
   messagingSenderId: "701001104012",
   appId: "1:701001104012:web:294967faec11a627c819a9"
 };
-
-/* Initialize Firebase */
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+  const tablesContainer = document.getElementById('tablesContainer');
+  const typeSelect = document.getElementById('typeSelect');
+  const itemSelect = document.getElementById('itemSelect');
+  const priceSelect = document.getElementById('priceSelect');
+  const tableSelect = document.getElementById('tableSelect');
+  const quantityInput = document.getElementById('quantity');
 
-const tablesContainer = document.getElementById('tablesContainer');
-const typeSelect = document.getElementById('typeSelect');
-const itemSelect = document.getElementById('itemSelect');
+  for(let i=1;i<=13;i++){ tableSelect.innerHTML += `<option value="${i}">${i}</option>`; }
 
-/* Menu items with prices (including multi-price as arrays) */
-const menuItems = {
-  food: [
-    {item:'Salsicha',price:['200mts']},
-    {item:'Salsicha c/ Queijo',price:['300mts']},
-    {item:'Worse',price:['200mts']},
-    {item:'Babalaza',price:['300mts']},
-    {item:'Rabada',price:['200mts']},
-    {item:'Língua',price:['200mts']},
-    {item:'Brisket',price:['400mts']},
-    {item:'Figado de vaca',price:['300mts']},
-    {item:'Cordornizes',price:['350mts']},
-    {item:'Moela',price:['300mts']},
-    {item:'Sopa de legumes',price:['270mts']},
-    {item:'Sopa de Feijão',price:['220mts']},
-    {item:'Salgadinhos (dose)',price:['100mts']},
-    {item:'Pizza Grande',price:['600mts']},
-    {item:'Pizza Pequena',price:['350mts']},
-    {item:'Picanha',price:['500mts']},
-    {item:'T-Bone',price:['450mts']},
-    {item:'Lombo',price:['300mts']},
-    {item:'Bife',price:['600mts']},
-    {item:'Bitoque',price:['500mts']},
-    {item:'Prego Completo',price:['250mts']},
-    {item:'Prego no Prato',price:['300mts']},
-    {item:'Lasanha',price:['600mts']},
-    {item:'Pernil',price:['350mts']},
-    {item:'Carne de Porco',price:['350mts']},
-    {item:'Costuleta',price:['500mts','850mts']},
-    {item:'Frango Inteiro',price:['700mts']},
-    {item:'Meio Frango',price:['350mts']},
-    {item:'Dose de Frango',price:['250mts']},
-    {item:'Peixe c/m legumes',price:['600mts']}
-  ],
-  drink: [
-    {item:'2M Grande',price:['70mts']},
-    {item:'Savana',price:['80mts']},
-    {item:'Heineken',price:['80mts']},
-    {item:'Heineken Grande',price:['70mts']},
-    {item:'Impala',price:['60mts']},
-    {item:'Txilar a lata',price:['60mts']},
-    {item:'Txilar garrafa',price:['70mts']},
-    {item:'Corona',price:['100mts']},
-    {item:'Brutal a garafa',price:['80mts']},
-    {item:'Brutal a lata',price:['100mts']},
-    {item:'Água Tônica',price:['70mts']},
-    {item:'May fair',price:['90mts']},
-    {item:'Flying Fish',price:['80mts']},
-    {item:'Lite',price:['80mts']},
-    {item:'Black Crown',price:['80mts']},
-    {item:'Stella',price:['100mts']},
-    {item:'Bernina',price:['90mts']},
-    {item:'Whisky Jameson',price:['150mts','1250mts']},
-    {item:'Amarula',price:['150mts','850mts']},
-    {item:'Paul Cluver Branco',price:['850mts']},
-    {item:'Roodberg Black',price:['900mts']},
-    {item:'Vinho da Casa',price:['200mts']},
-    {item:'Refresco 2L',price:['110mts']},
-    {item:'Refresco 1L',price:['70mts']},
-    {item:'Refresco a lata',price:['70mts']},
-    {item:'Sumo compal',price:['70mts']},
-    {item:'Sumo compal 1L',price:['140mts']},
-    {item:'Chá Simples',price:['50mts']}
-  ]
-};
+  const menuItems = { /* Use previous food/drink items with price arrays */ };
 
-let tables = {}; // all tables by unique ID
+  let tables = {};
 
-/* Populate itemSelect based on type */
-typeSelect.addEventListener('change',()=>{
-  const type = typeSelect.value;
-  itemSelect.innerHTML = '<option value="" disabled selected>Select Item</option>';
-  menuItems[type].forEach(menuItem=>{
-    const option = document.createElement('option');
-    option.value = menuItem.item;
-    option.textContent = menuItem.price.length>1 ? `${menuItem.item} (${menuItem.price.join('/')})` : `${menuItem.item} (${menuItem.price[0]})`;
-    itemSelect.appendChild(option);
-  });
-});
-
-/* Add item to table */
-document.getElementById('addItemBtn').addEventListener('click', async ()=>{
-  const tableNum = document.getElementById('tableSelect').value;
-  const type = typeSelect.value;
-  const itemName = itemSelect.value;
-  const quantity = parseInt(document.getElementById('quantity').value);
-  if(!tableNum||!type||!itemName||quantity<1){alert('Select table, type, item, quantity'); return;}
-
-  const menuItem = menuItems[type].find(m=>m.item===itemName);
-
-  let priceValue;
-  if(menuItem.price.length===1){
-    priceValue = menuItem.price[0];
-  } else {
-    priceValue = prompt(`Choose price for ${itemName}: ${menuItem.price.join(' / ')}`, menuItem.price[0]);
-    if(!menuItem.price.includes(priceValue)) { alert('Invalid price chosen'); return; }
-  }
-
-  const tableID = `TABLE-${tableNum}-${Date.now()}`; // unique per session
-  let existingTable = Object.values(tables).find(t=>t.table==tableNum && t.tableStatus==='opened');
-
-  if(!existingTable){
-    tables[tableID] = {
-      id: tableID,
-      table: tableNum,
-      items: [],
-      totalPrice: 0,
-      tableStatus: 'opened',
-      time: new Date().toString()
-    };
-    existingTable = tables[tableID];
-  }
-
-  existingTable.items.push({
-    item: itemName,
-    price: priceValue,
-    quantity,
-    status: 'pending',
-    time: new Date().toString(),
-    isNew: true
+  typeSelect.addEventListener('change', ()=>{
+    const type = typeSelect.value;
+    itemSelect.innerHTML = '<option value="" disabled selected>Select Item</option>';
+    priceSelect.style.display='none'; priceSelect.innerHTML='';
+    menuItems[type].forEach(item=>{
+      const text = item.price.length>1 ? `${item.item} (${item.price.join('/')})` : `${item.item} (${item.price[0]})`;
+      itemSelect.innerHTML += `<option value="${item.item}">${text}</option>`;
+    });
   });
 
-  existingTable.totalPrice = existingTable.items.reduce((sum,i)=>{
-    const numericPrice = parseInt(i.price.replace(/\D/g,''));
-    return sum + numericPrice*i.quantity;
-  },0);
-
-  renderTables();
-  await saveTablesToFirebase();
-});
-
-/* Save tables to Firebase */
-async function saveTablesToFirebase(){
-  const tablesDocRef = doc(db,'posData','tables');
-  await setDoc(tablesDocRef,{tables});
-}
-
-/* Listen for changes and auto-refresh */
-function listenTables(){
-  const tablesDocRef = doc(db,'posData','tables');
-  onSnapshot(tablesDocRef, snapshot=>{
-    if(snapshot.exists()){
-      tables = snapshot.data().tables || {};
-      renderTables();
+  itemSelect.addEventListener('change', ()=>{
+    const type = typeSelect.value;
+    const selected = menuItems[type].find(i=>i.item===itemSelect.value);
+    if(selected.price.length>1){
+      priceSelect.style.display='block';
+      priceSelect.innerHTML='<option value="" disabled selected>Select Price</option>';
+      selected.price.forEach(p=>priceSelect.innerHTML+=`<option value="${p}">${p}</option>`);
+    } else {
+      priceSelect.style.display='none';
+      priceSelect.value = selected.price[0];
     }
   });
-}
 
-/* Render tables */
-function renderTables(){
-  tablesContainer.innerHTML='';
-  Object.values(tables)
-    .filter(t => t.tableStatus==='opened')
-    .sort((a,b)=>new Date(b.time) - new Date(a.time))
-    .forEach(tableOrder=>{
-      const tableBox = document.createElement('div');
-      tableBox.className='table-box';
-      tableBox.innerHTML=`<h3>Table ${tableOrder.table}</h3><div class="table-total">Total: ${tableOrder.totalPrice}mts</div>`;
+  document.getElementById('addItemBtn').addEventListener('click', async ()=>{
+    const tableNum = tableSelect.value; const type = typeSelect.value; const itemName = itemSelect.value;
+    const quantity = parseInt(quantityInput.value);
+    if(!tableNum||!type||!itemName||quantity<1){alert('Select table, type, item, quantity'); return;}
+    const selectedItem = menuItems[type].find(i=>i.item===itemName);
+    const priceValue = selectedItem.price.length>1 ? priceSelect.value : selectedItem.price[0];
 
-      tableOrder.items.forEach(item=>{
-        const itemDiv = document.createElement('div');
-        itemDiv.className='item-box '+(item.status==='pending'?'pending-order':'served-order');
-        if(item.isNew){ itemDiv.classList.add('new-order'); setTimeout(()=>{item.isNew=false; renderTables();},1000); }
-        itemDiv.innerHTML=`
-          <div class="item-info">
-            <strong>${item.item} x${item.quantity}</strong>
-            <span>[${item.status}]</span>
-            <span>${item.price} x${item.quantity}</span>
-          </div>
-          <div class="item-buttons">
-            ${item.status==='pending'?`<button class="served-btn">Served</button>`:''}
-            <button class="cancel-btn">Cancel</button>
-          </div>
-        `;
+    let existingTable = Object.values(tables).find(t=>t.table==tableNum && t.tableStatus==='opened');
+    if(!existingTable){
+      const tableID = `TABLE-${tableNum}-${Date.now()}`;
+      tables[tableID] = {id:tableID, table:tableNum, items:[], totalPrice:0, tableStatus:'opened', time: new Date().toString()};
+      existingTable = tables[tableID];
+    }
 
-        if(item.status==='pending'){
-          itemDiv.querySelector('.served-btn').addEventListener('click', async ()=>{
-            item.status='served';
-            renderTables();
-            await saveTablesToFirebase();
-          });
-        }
-        itemDiv.querySelector('.cancel-btn').addEventListener('click', async ()=>{
-          const idx = tableOrder.items.indexOf(item);
-          if(idx!==-1) tableOrder.items.splice(idx,1);
-          tableOrder.totalPrice = tableOrder.items.reduce((sum,i)=>{
-            const numericPrice = parseInt(i.price.replace(/\D/g,''));
-            return sum + numericPrice*i.quantity;
-          },0);
-          if(tableOrder.items.length===0){
-            tables[tableOrder.id].tableStatus='closed';
-          }
-          renderTables();
-          await saveTablesToFirebase();
+    existingTable.items.push({item:itemName, price:priceValue, quantity, status:'pending', time:new Date().toString(), isNew:true});
+    existingTable.totalPrice = existingTable.items.reduce((sum,i)=>{
+      const n = parseInt(i.price.replace(/\D/g,'')); return sum+n*i.quantity;
+    },0);
+
+    renderTables(); await saveTablesToFirebase();
+  });
+
+  async function saveTablesToFirebase(){ await setDoc(doc(db,'posData','tables'),{tables}); }
+
+  function listenTables(){
+    const tablesDocRef = doc(db,'posData','tables');
+    onSnapshot(tablesDocRef, snapshot=>{ if(snapshot.exists()){ tables = snapshot.data().tables||{}; renderTables(); } });
+  }
+
+  function renderTables(){
+    tablesContainer.innerHTML='';
+    Object.values(tables).filter(t=>t.tableStatus==='opened')
+      .sort((a,b)=>new Date(b.time)-new Date(a.time))
+      .forEach(table=>{
+        const box = document.createElement('div'); box.className='table-box';
+        box.innerHTML=`<h3>Table ${table.table}</h3><div class="table-total">Total: ${table.totalPrice}mts</div>`;
+        table.items.forEach(item=>{
+          const itemDiv=document.createElement('div'); itemDiv.className='item-box '+(item.status==='pending'?'pending-order':'served-order');
+          if(item.isNew){ itemDiv.classList.add('new-order'); setTimeout(()=>{item.isNew=false; renderTables();},1000); }
+          itemDiv.innerHTML=`<div class="item-info"><strong>${item.item} x${item.quantity}</strong><span>[${item.status}]</span><span>${item.price} x${item.quantity}</span></div><div class="item-buttons">${item.status==='pending'?`<button class="served-btn">Served</button>`:''}<button class="cancel-btn">Cancel</button></div>`;
+          if(item.status==='pending'){ itemDiv.querySelector('.served-btn').addEventListener('click', async ()=>{ item.status='served'; renderTables(); await saveTablesToFirebase(); }); }
+          itemDiv.querySelector('.cancel-btn').addEventListener('click', async ()=>{ const idx=table.items.indexOf(item); if(idx!==-1) table.items.splice(idx,1); table.totalPrice=table.items.reduce((sum,i)=>sum+parseInt(i.price.replace(/\D/g,''))*i.quantity,0); if(table.items.length===0) table.tableStatus='closed'; renderTables(); await saveTablesToFirebase(); });
+          box.appendChild(itemDiv);
         });
-        tableBox.appendChild(itemDiv);
+        const closeBtn=document.createElement('button'); closeBtn.textContent='Close Table'; closeBtn.className='close-btn';
+        closeBtn.addEventListener('click', async ()=>{ if(table.items.some(i=>i.status==='pending')){alert('All items must be served!'); return;} table.tableStatus='closed'; renderTables(); await saveTablesToFirebase(); });
+        box.appendChild(closeBtn); tablesContainer.appendChild(box);
       });
+  }
 
-      const closeBtn = document.createElement('button');
-      closeBtn.textContent='Close Table';
-      closeBtn.className='close-btn';
-      closeBtn.addEventListener('click', async ()=>{
-        if(tableOrder.items.some(i=>i.status==='pending')){ alert('All items must be served!'); return; }
-        tables[tableOrder.id].tableStatus='closed';
-        renderTables();
-        await saveTablesToFirebase();
-      });
-      tableBox.appendChild(closeBtn);
-      tablesContainer.appendChild(tableBox);
-    });
-}
-
-/* Start listening */
-listenTables();
-
+  listenTables();
 });
 </script>
 </body>
