@@ -14,6 +14,7 @@ body {
   flex-direction: column;
   align-items: center;
 }
+
 .order-box {
   background: #0062ca;
   padding: 25px;
@@ -23,7 +24,9 @@ body {
   color: #fff;
   margin-bottom: 20px;
 }
+
 .order-box h2 { text-align: center; margin-bottom: 20px; }
+
 select, input {
   width: 100%;
   padding: 12px;
@@ -33,6 +36,7 @@ select, input {
   font-size: 16px;
   outline: none;
 }
+
 button {
   padding: 10px 15px;
   border: none;
@@ -44,13 +48,16 @@ button {
   align-items: center;
   justify-content: center;
 }
+
 .add-btn {
   width: 100%;
   background: #28a745;
   color: #fff;
   font-weight: bold;
 }
+
 .add-btn:hover { background: #218838; }
+
 .tables-container {
   display: flex;
   flex-wrap: wrap;
@@ -58,6 +65,7 @@ button {
   gap: 15px;
   width: 100%;
 }
+
 .table-box {
   background: #fff;
   color: #333;
@@ -69,8 +77,11 @@ button {
   overflow-y: auto;
   position: relative;
 }
+
 .table-box h3 { text-align: center; margin-bottom: 10px; }
+
 .table-total { font-weight: bold; text-align: right; margin-bottom: 10px; }
+
 .item-box {
   display: flex;
   justify-content: space-between;
@@ -80,16 +91,30 @@ button {
   margin: 5px 0;
   transition: transform 0.2s;
 }
+
 .pending-order { background-color: #fff3cd; animation: pulsePending 2s infinite; }
 .served-order { background-color: #d4edda; }
+
 .item-info { display: flex; flex-direction: column; gap: 2px; }
 .item-buttons button { margin-left: 5px; font-size: 14px; border-radius: 8px; }
 .served-btn { background: #28a745; color: #fff; }
 .cancel-btn { background: #dc3545; color: #fff; }
 .close-btn { background: #6c757d; color: #fff; font-weight: bold; width: 100%; margin-top: 10px; }
-@keyframes glow { 0% { box-shadow: 0 0 5px #28a745; } 50% { box-shadow: 0 0 15px #28a745; } 100% { box-shadow: 0 0 5px #28a745; } }
-@keyframes pulsePending { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px #28a745; }
+  50% { box-shadow: 0 0 15px #28a745; }
+  100% { box-shadow: 0 0 5px #28a745; }
+}
+
+@keyframes pulsePending {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
 .item-box.new-order { animation: glow 1s ease-in-out; }
+
 @media (max-width: 768px) {
   .order-box, .table-box { width: 90%; }
   .tables-container { flex-direction: column; align-items: center; }
@@ -123,7 +148,7 @@ button {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /* Firebase config */
 const firebaseConfig = {
@@ -145,9 +170,28 @@ const tablesContainer = document.getElementById('tablesContainer');
 const typeSelect = document.getElementById('typeSelect');
 const itemSelect = document.getElementById('itemSelect');
 
+/* Updated menu items */
 const menuItems = {
-  food: [ {item:'Burger',price:5},{item:'Pizza',price:8},{item:'Salad',price:4},{item:'Pasta',price:7} ],
-  drink: [ {item:'Water',price:1},{item:'Soda',price:2},{item:'Juice',price:3},{item:'Coffee',price:2} ]
+  food: [
+    {item:'Salsicha',price:200},{item:'Sasicha c/ Queijo',price:300},{item:'Worse',price:200},{item:'Babalaza',price:300},
+    {item:'Rabada',price:200},{item:'Língua',price:200},{item:'Brisket',price:400},{item:'Figado de vaca',price:300},
+    {item:'Cordornizes',price:350},{item:'Moela',price:300},{item:'Sopa de legumes',price:270},{item:'Sopa de Feijão',price:220},
+    {item:'Salgadinhos (dose)',price:100},{item:'Pizza Grande',price:600},{item:'Pizza Pequena',price:350},{item:'Picanha',price:500},
+    {item:'T-Bone',price:450},{item:'Lombo',price:300},{item:'Bife',price:600},{item:'Bitoque',price:500},{item:'Prego Completo',price:250},
+    {item:'Prego no Prato',price:300},{item:'Lasanha',price:600},{item:'Pernil',price:350},{item:'Carne de Porco',price:350},
+    {item:'Costuleta',price:500},{item:'Frango Inteiro',price:850},{item:'Meio Frango',price:700},{item:'Dose de Frango',price:350},
+    {item:'Peixe c/m legumes',price:600}
+  ],
+  drink: [
+    {item:'2M Grande',price:70},{item:'Savana',price:80},{item:'Heineken',price:80},{item:'Heineken Grande',price:70},
+    {item:'Impala',price:60},{item:'Txilar a lata',price:60},{item:'Txilar garrafa',price:70},{item:'Corona',price:100},
+    {item:'Brutal a garafa',price:80},{item:'Brutal a lata',price:100},{item:'Água Tônica',price:70},{item:'May fair',price:90},
+    {item:'Flying Fish',price:80},{item:'Lite',price:80},{item:'Black Crown',price:80},{item:'Stella',price:100},
+    {item:'Bernina',price:90},{item:'Whisky Jameson',price:150},{item:'Amarula',price:150},{item:'Paul Cluver Branco',price:850},
+    {item:'Roodberg Black',price:150},{item:'Vinho da Casa',price:900},{item:'Refresco 2L',price:200},{item:'Refresco 1L',price:110},
+    {item:'Refresco a lata',price:70},{item:'Sumo compal',price:70},{item:'Sumo compal 1L',price:70},{item:'Chá Simples',price:140},
+    {item:'Extra',price:50} // optional extra for last 50mts
+  ]
 };
 
 let tables = {}; // { tableID: tableObject }
@@ -159,12 +203,12 @@ typeSelect.addEventListener('change',()=>{
   menuItems[type].forEach(menuItem=>{
     const option=document.createElement('option');
     option.value=menuItem.item;
-    option.textContent=`${menuItem.item} ($${menuItem.price})`;
+    option.textContent=`${menuItem.item} (${menuItem.price}mts)`;
     itemSelect.appendChild(option);
   });
 });
 
-/* Add Item */
+/* Add Item, save, and render */
 document.getElementById('addItemBtn').addEventListener('click', async ()=>{
   const tableNum = document.getElementById('tableSelect').value;
   const type = typeSelect.value;
@@ -173,17 +217,10 @@ document.getElementById('addItemBtn').addEventListener('click', async ()=>{
   if(!tableNum||!type||!itemName||quantity<1){alert('Select table, type, item, quantity'); return;}
 
   const menuItem = menuItems[type].find(m=>m.item===itemName);
-  const tableID = `TABLE-${tableNum}-${Date.now()}`; // unique ID every time
-  tables[tableID] = {
-    id: tableID,
-    table: tableNum,
-    items: [],
-    totalPrice: 0,
-    tableStatus: 'opened',
-    time: new Date().toISOString()
-  };
-
-  tables[tableID].items.push({
+  const tableID = `TABLE-${tableNum}-${Date.now()}`; // unique table ID
+  // Find open table with same number
+  let existingTable = Object.values(tables).find(t=>t.table==tableNum && t.tableStatus==='opened');
+  if(existingTable){ existingTable.items.push({
     item: menuItem.item,
     price: menuItem.price,
     quantity,
@@ -191,8 +228,17 @@ document.getElementById('addItemBtn').addEventListener('click', async ()=>{
     time: new Date().toISOString(),
     isNew: true
   });
-
-  tables[tableID].totalPrice = tables[tableID].items.reduce((sum,i)=>sum+i.price*i.quantity,0);
+    existingTable.totalPrice = existingTable.items.reduce((sum,i)=>sum+i.price*i.quantity,0);
+  } else {
+    tables[tableID] = {
+      id: tableID,
+      table: tableNum,
+      items:[{ item: menuItem.item, price: menuItem.price, quantity, status:'pending', time:new Date().toISOString(), isNew:true }],
+      totalPrice: menuItem.price*quantity,
+      tableStatus:'opened',
+      time:new Date().toISOString()
+    };
+  }
   renderTables();
   await saveTablesToFirebase();
 });
@@ -203,31 +249,26 @@ async function saveTablesToFirebase(){
   await setDoc(tablesDocRef,{tables});
 }
 
-/* Real-time listener for tables */
-const tablesDocRef = doc(db,'posData','tables');
-onSnapshot(tablesDocRef, snapshot=>{
+/* Fetch tables */
+async function fetchTables(){
+  const tablesDocRef = doc(db,'posData','tables');
+  const snapshot = await getDoc(tablesDocRef);
   if(snapshot.exists()){
     tables = snapshot.data().tables || {};
-    // convert time strings to Date objects and mark isNew false
-    for(let key in tables){
-      const t = tables[key];
-      t.time = new Date(t.time);
-      t.items.forEach(i=>{ i.time = new Date(i.time); i.isNew=false; });
-    }
     renderTables();
   }
-});
+}
 
 /* Render only opened tables */
 function renderTables(){
   tablesContainer.innerHTML='';
   Object.values(tables)
     .filter(t => t.tableStatus==='opened')
-    .sort((a,b)=>b.time - a.time)
+    .sort((a,b)=>new Date(b.time)-new Date(a.time))
     .forEach(tableOrder=>{
       const tableBox=document.createElement('div');
       tableBox.className='table-box';
-      tableBox.innerHTML=`<h3>Table ${tableOrder.table}</h3><div class="table-total">Total: $${tableOrder.totalPrice}</div>`;
+      tableBox.innerHTML=`<h3>Table ${tableOrder.table}</h3><div class="table-total">Total: ${tableOrder.totalPrice}mts</div>`;
 
       tableOrder.items.forEach(item=>{
         const itemDiv=document.createElement('div');
@@ -237,7 +278,7 @@ function renderTables(){
           <div class="item-info">
             <strong>${item.item} x${item.quantity}</strong>
             <span>[${item.status}]</span>
-            <span>$${item.price*item.quantity}</span>
+            <span>${item.price*item.quantity}mts</span>
           </div>
           <div class="item-buttons">
             ${item.status==='pending'?`<button class="served-btn">Served</button>`:''}
@@ -277,6 +318,10 @@ function renderTables(){
       tablesContainer.appendChild(tableBox);
     });
 }
+
+/* Initial fetch */
+fetchTables();
+
 });
 </script>
 </body>
