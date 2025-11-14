@@ -69,9 +69,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-/* -------------------------
-   Firebase config — your config
-   ------------------------- */
 const firebaseConfig = {
   apiKey: "AIzaSyC6VdctOXcT-qHaLJs1gEzwzVv5AdK5e0w",
   authDomain: "pos-system-9a056.firebaseapp.com",
@@ -84,9 +81,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* -------------------------
-   UI elements
-   ------------------------- */
+/* UI Elements */
 const tableSelect = document.getElementById('tableSelect');
 const typeSelect = document.getElementById('typeSelect');
 const itemSelect = document.getElementById('itemSelect');
@@ -97,9 +92,7 @@ const addItemBtn = document.getElementById('addItemBtn');
 const tablesContainer = document.getElementById('tablesContainer');
 const stockNote = document.getElementById('stockNote');
 
-/* -------------------------
-   Menu data
-   ------------------------- */
+/* Menu data */
 const menuItems = {
   food: [
     {item:'Salsicha',price:[200]}, {item:'Sasicha c/ Queijo',price:[300]}, {item:'Worse',price:[200]},
@@ -125,28 +118,21 @@ const menuItems = {
   ]
 };
 
-/* -------------------------
-   Local state
-   ------------------------- */
-let tables = {};          // persisted under posData/tables
-let mergedHistory = {};   // backup for true-split: mergedHistory[tableID] = [...originalSubOrders]
-let stock = {};           // persisted under posData/stock (itemName -> qty)
+/* Local state */
+let tables = {};
+let mergedHistory = {};
+let stock = {};
 
-/* -------------------------
-   Firestore refs
-   ------------------------- */
+/* Firestore refs */
 const tablesDocRef = doc(db,'posData','tables');
 const stockDocRef = doc(db,'posData','stock');
 
-/* -------------------------
-   Initialize docs if missing
-   ------------------------- */
+/* Initialize default data if empty */
 (async function initIfEmpty(){
   const tSnap = await getDoc(tablesDocRef);
   if(!tSnap.exists()) await setDoc(tablesDocRef, { tables: {} });
   const sSnap = await getDoc(stockDocRef);
   if(!sSnap.exists()){
-    // create default stock 20 for each menu item
     for(const k of ['food','drink']){
       menuItems[k].forEach(m => { stock[m.item] = 20; });
     }
@@ -154,9 +140,7 @@ const stockDocRef = doc(db,'posData','stock');
   }
 })();
 
-/* -------------------------
-   Subscribe to stock and tables (real-time)
-   ------------------------- */
+/* Real-time subscriptions */
 onSnapshot(stockDocRef, snap=>{
   const data = snap.data();
   if(data && data.stock) stock = data.stock;
@@ -169,11 +153,8 @@ onSnapshot(tablesDocRef, snap=>{
   renderTables();
 });
 
-/* -------------------------
-   Helpers: save
-   ------------------------- */
+/* Helpers */
 async function saveTablesToFirebase(){
-  // cleanup empty subOrders
   for(const key in tables){
     if(!tables[key].subOrders || tables[key].subOrders.length===0) delete tables[key];
     else tables[key].subOrders = tables[key].subOrders.filter(s=>s.items && s.items.length>0);
@@ -185,124 +166,81 @@ async function saveStockToFirebase(){
   await setDoc(stockDocRef, { stock });
 }
 
-/* -------------------------
-   Populate table select (1..13)
-   ------------------------- */
-for(let i=1;i<=13;i++){
-  const opt = document.createElement('option'); opt.value=i; opt.textContent=i;
-  tableSelect.appendChild(opt);
-}
+/* Populate table select */
+for(let i=1;i<=13;i++){ tableSelect.innerHTML += `<option value="${i}">${i}</option>`; }
 
-/* -------------------------
-   Type -> Item population
-   ------------------------- */
+/* Type -> item population */
 typeSelect.addEventListener('change', ()=>{
   itemSelect.innerHTML = '<option value="" disabled selected>Select item</option>';
-  const arr = menuItems[typeSelect.value] || [];
-  arr.forEach(m=>{
+  (menuItems[typeSelect.value]||[]).forEach(m=>{
     const opt = document.createElement('option'); opt.value=m.item; opt.textContent=m.item;
     itemSelect.appendChild(opt);
   });
-  priceSelect.style.display = 'none';
+  priceSelect.style.display='none';
 });
 
-/* -------------------------
-   Show price options if multiple
-   ------------------------- */
+/* Price selection if multiple */
 itemSelect.addEventListener('change', ()=>{
-  const arr = menuItems[typeSelect.value] || [];
-  const menuItem = arr.find(m => m.item === itemSelect.value);
-  if(menuItem && menuItem.price && menuItem.price.length > 1){
+  const menuItem = (menuItems[typeSelect.value]||[]).find(m=>m.item===itemSelect.value);
+  if(menuItem?.price?.length>1){
     priceSelect.innerHTML = '<option value="" disabled selected>Select price</option>';
-    menuItem.price.forEach(p => {
-      const opt = document.createElement('option'); opt.value = p; opt.textContent = p + ' mts';
+    menuItem.price.forEach(p=>{
+      const opt = document.createElement('option'); opt.value=p; opt.textContent=p+' mts';
       priceSelect.appendChild(opt);
     });
-    priceSelect.style.display = 'block';
-  } else priceSelect.style.display = 'none';
+    priceSelect.style.display='block';
+  } else priceSelect.style.display='none';
 });
 
-/* -------------------------
-   Inventory helper UI
-   ------------------------- */
+/* Inventory note */
 function renderStockNote(){
   const lows = Object.entries(stock).filter(([,q])=>q<=3).slice(0,4);
-  if(lows.length){
-    stockNote.innerHTML = `<span class="low-stock">Low: ${lows.map(([i])=>i).join(', ')}</span>`;
-  } else stockNote.textContent = '';
+  stockNote.innerHTML = lows.length ? `<span class="low-stock">Low: ${lows.map(([i])=>i).join(', ')}</span>` : '';
 }
 
-/* -------------------------
-   Add item - decrements stock, adds to (table->subOrder)
-   ------------------------- */
+/* Add item */
 addItemBtn.addEventListener('click', async ()=>{
-  const tableNum = tableSelect.value;
-  const type = typeSelect.value;
-  const itemName = itemSelect.value;
+  const tableNum = tableSelect.value, type = typeSelect.value, itemName = itemSelect.value;
   const price = priceSelect.style.display==='block' ? parseInt(priceSelect.value) : (menuItems[type]||[]).find(m=>m.item===itemName)?.price[0];
-  const qty = parseInt(quantityInput.value) || 1;
-  const desc = (descriptionInput.value || 'Person').trim();
+  const qty = parseInt(quantityInput.value)||1;
+  const desc = (descriptionInput.value||'Person').trim();
 
-  if(!tableNum || !type || !itemName || !price || qty<1){
-    alert('Select Table, Type, Item and Quantity.');
-    return;
-  }
+  if(!tableNum || !type || !itemName || !price || qty<1){ alert('Select Table, Type, Item and Quantity.'); return; }
 
-  // check stock
-  const available = (stock[itemName] === undefined) ? Infinity : stock[itemName];
-  if(available !== Infinity && available < qty){
-    alert(`Not enough stock for "${itemName}". Available: ${available}`);
-    return;
-  }
+  const available = (stock[itemName]===undefined)?Infinity:stock[itemName];
+  if(available!==Infinity && available<qty){ alert(`Not enough stock for "${itemName}". Available: ${available}`); return; }
 
-  // find or create table object
-  let tableID = Object.keys(tables).find(id => tables[id].table == tableNum && tables[id].tableStatus === 'opened');
+  let tableID = Object.keys(tables).find(id=>tables[id].table==tableNum && tables[id].tableStatus==='opened');
   if(!tableID){
     tableID = 'TABLE-'+Date.now();
-    tables[tableID] = { id: tableID, table: tableNum, tableStatus:'opened', time: new Date().toISOString(), subOrders: [] };
+    tables[tableID] = { id: tableID, table: tableNum, tableStatus:'opened', time:new Date().toISOString(), subOrders: [] };
   }
   const tableOrder = tables[tableID];
 
-  // find or create sub-order by description
-  let sub = tableOrder.subOrders.find(s => s.description === desc);
-  if(!sub){
-    sub = { personID: 'PERSON-'+Date.now(), description: desc, items: [], totalPrice: 0 };
-    tableOrder.subOrders.push(sub);
-  }
+  let sub = tableOrder.subOrders.find(s=>s.description===desc);
+  if(!sub){ sub={personID:'PERSON-'+Date.now(), description:desc, items:[], totalPrice:0}; tableOrder.subOrders.push(sub); }
 
-  // push item
-  const newItem = { id: 'ITEM-'+Date.now(), item: itemName, price, quantity: qty, status:'pending', time: new Date().toISOString() };
+  const newItem = { id:'ITEM-'+Date.now(), item:itemName, price, quantity:qty, status:'pending', time:new Date().toISOString() };
   sub.items.push(newItem);
-  sub.totalPrice = sub.items.reduce((s,i)=>s + i.price*i.quantity, 0);
+  sub.totalPrice = sub.items.reduce((s,i)=>s+i.price*i.quantity,0);
 
-  // decrement stock and save both
-  if(stock[itemName] !== undefined && stock[itemName] !== Infinity){
-    stock[itemName] = Math.max(0, (stock[itemName] || 0) - qty);
-  }
-  await saveStockToFirebase();
+  if(stock[itemName]!==undefined && stock[itemName]!==Infinity){ stock[itemName]-=qty; await saveStockToFirebase(); }
   await saveTablesToFirebase();
 
-  quantityInput.value = 1;
-  descriptionInput.value = '';
+  quantityInput.value=1; descriptionInput.value='';
   renderTables();
 });
 
 /* -------------------------
-   Render tables UI (main)
+   Render tables
    ------------------------- */
 function renderTables(){
-  tablesContainer.innerHTML = '';
+  tablesContainer.innerHTML='';
   Object.values(tables).filter(t=>t.tableStatus==='opened').sort((a,b)=>b.time.localeCompare(a.time)).forEach(tableOrder=>{
     const box = document.createElement('div'); box.className='table-box';
-    const total = (tableOrder.subOrders||[]).reduce((s,sub)=>s + (sub.totalPrice||0), 0);
-    box.innerHTML = `
-      <div class="table-head">
-        <div><strong>Table ${tableOrder.table}</strong></div>
-        <div class="table-total">${total} mts</div>
-      </div>
-    `;
+    const total = (tableOrder.subOrders||[]).reduce((s,sub)=>s+(sub.totalPrice||0),0);
+    box.innerHTML = `<div class="table-head"><div><strong>Table ${tableOrder.table}</strong></div><div class="table-total">${total} mts</div></div>`;
 
-    // whole-table move controls
     const wholeControls = document.createElement('div'); wholeControls.className='controls-row';
     const moveSelect = document.createElement('select'); moveSelect.className='move-select';
     moveSelect.innerHTML = `<option value="" disabled selected>Move table</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
@@ -311,63 +249,42 @@ function renderTables(){
     moveBtn.addEventListener('click', async ()=>{
       const newTable = moveSelect.value;
       if(!newTable){ alert('Choose a table to move to'); return; }
-      if(String(newTable) === String(tableOrder.table)){ alert('Already on that table'); return; }
-      tableOrder.table = newTable;
-      // if mergedHistory existed for old id, move it too under new id
-      const oldID = tableOrder.id;
-      await saveTablesToFirebase();
-      // we must update mergedHistory key if exists
-      if(mergedHistory[oldID]){
-        mergedHistory['TABLE-'+Date.now()] = mergedHistory[oldID];
-        delete mergedHistory[oldID];
+      if(String(newTable)===String(tableOrder.table)){ alert('Already on that table'); return; }
+      tableOrder.table=newTable;
+      if(mergedHistory[tableOrder.id]){
+        mergedHistory['TABLE-'+Date.now()] = mergedHistory[tableOrder.id]; delete mergedHistory[tableOrder.id];
       }
-      renderTables();
+      await saveTablesToFirebase(); renderTables();
     });
     wholeControls.appendChild(moveBtn);
 
-    // Merge button (table-level) - show only if more than one sub-order and not already merged
-    if((tableOrder.subOrders || []).length > 1 && !mergedHistory[tableOrder.id]){
+    if((tableOrder.subOrders||[]).length>1 && !mergedHistory[tableOrder.id]){
       const mergeBtn = document.createElement('button'); mergeBtn.className='merge-btn small'; mergeBtn.textContent='Merge';
       mergeBtn.addEventListener('click', async ()=>{
-        // backup original subOrders
         mergedHistory[tableOrder.id] = JSON.parse(JSON.stringify(tableOrder.subOrders));
-        // create ONE merged sub-order (TRUE MERGE)
-        const mergedItems = [];
-        tableOrder.subOrders.forEach(s => mergedItems.push(...s.items));
-        const mergedSub = {
-          personID: 'PERSON-'+Date.now(),
-          description: 'Merged Order',
-          items: mergedItems,
-          totalPrice: mergedItems.reduce((s,i)=>s + i.price*i.quantity,0)
-        };
-        tableOrder.subOrders = [mergedSub];
-        await saveTablesToFirebase();
-        renderTables();
+        const mergedItems = []; tableOrder.subOrders.forEach(s=>mergedItems.push(...s.items));
+        tableOrder.subOrders = [{ personID:'PERSON-'+Date.now(), description:'Merged Order', items:mergedItems, totalPrice:mergedItems.reduce((s,i)=>s+i.price*i.quantity,0) }];
+        await saveTablesToFirebase(); renderTables();
       });
       wholeControls.appendChild(mergeBtn);
     }
 
-    // Split button (table-level) - show only if table has a mergedHistory backup
     if(mergedHistory[tableOrder.id]){
       const splitBtn = document.createElement('button'); splitBtn.className='split-btn small'; splitBtn.textContent='Split';
       splitBtn.addEventListener('click', async ()=>{
-        // restore exact previous sub-orders
         tableOrder.subOrders = JSON.parse(JSON.stringify(mergedHistory[tableOrder.id]));
         delete mergedHistory[tableOrder.id];
-        await saveTablesToFirebase();
-        renderTables();
+        await saveTablesToFirebase(); renderTables();
       });
       wholeControls.appendChild(splitBtn);
     }
 
     box.appendChild(wholeControls);
 
-    // render sub-orders (if merged, tableOrder.subOrders will be single merged sub)
-    (tableOrder.subOrders || []).forEach((sub, subIndex) => {
+    (tableOrder.subOrders||[]).forEach((sub,subIndex)=>{
       const p = document.createElement('div'); p.className='person-box';
       p.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${sub.description}</strong></div><div>${sub.totalPrice||0} mts</div></div>`;
 
-      // controls for this sub-order: move it to another table
       const controls = document.createElement('div'); controls.className='person-actions';
       const moveS = document.createElement('select'); moveS.className='move-select';
       moveS.innerHTML = `<option value="" disabled selected>Move sub-order</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
@@ -375,110 +292,51 @@ function renderTables(){
       const moveSBtn = document.createElement('button'); moveSBtn.className='small'; moveSBtn.textContent='Move';
       moveSBtn.addEventListener('click', async ()=>{
         const newTable = moveS.value;
-        if(!newTable){ alert('Choose a table to move to'); return; }
-        if(String(newTable) === String(tableOrder.table)){ alert('Already on that table'); return; }
-        // deep copy sub
-        const moved = JSON.parse(JSON.stringify(sub));
-        // remove sub from current table
-        tableOrder.subOrders.splice(subIndex,1);
-        if(!tableOrder.subOrders.length) delete tables[tableOrder.id];
-
-        // find or create target table
-        let targetID = Object.keys(tables).find(id => tables[id].table == newTable && tables[id].tableStatus === 'opened');
-        if(!targetID){
-          targetID = 'TABLE-'+Date.now();
-          tables[targetID] = { id: targetID, table: newTable, tableStatus:'opened', time: new Date().toISOString(), subOrders: [] };
-        }
-        tables[targetID].subOrders.push(moved);
-
-        // if we moved from a merged table and mergedHistory exists, remove mergedHistory for that old table ID (no longer valid)
-        if(mergedHistory[tableOrder.id]) delete mergedHistory[tableOrder.id];
-
-        await saveTablesToFirebase();
-        renderTables();
+        if(!newTable){ alert('Choose a table'); return; }
+        if(String(newTable)===String(tableOrder.table)){ alert('Already on that table'); return; }
+        let targetID = Object.keys(tables).find(id=>tables[id].table==newTable && tables[id].tableStatus==='opened');
+        if(!targetID){ targetID='TABLE-'+Date.now(); tables[targetID]={id:targetID,table:newTable,tableStatus:'opened',time:new Date().toISOString(),subOrders:[]}; }
+        tables[targetID].subOrders.push(sub); tableOrder.subOrders.splice(subIndex,1);
+        if(tableOrder.subOrders.length===0) delete tables[tableOrder.id];
+        await saveTablesToFirebase(); renderTables();
       });
       controls.appendChild(moveSBtn);
-      p.appendChild(controls);
 
-      // items inside sub-order
-      sub.items.forEach((it, itIndex) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'item-box ' + (it.status === 'pending' ? 'pending' : 'served');
-        itemDiv.innerHTML = `
-          <div style="min-width:150px">
-            <div><strong>${it.item} x${it.quantity}</strong></div>
-            <div style="font-size:13px;color:#555">[${it.status}]</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-weight:700">${it.price * it.quantity} mts</div>
-            <div style="margin-top:6px">
-              ${it.status === 'pending' ? `<button class="served-btn small">Served</button>` : ''}
-              <button class="cancel-btn small">Cancel</button>
-            </div>
-          </div>
-        `;
-        // served handler
-        if(it.status === 'pending'){
-          itemDiv.querySelector('.served-btn').addEventListener('click', async ()=>{
-            it.status = 'served';
-            await saveTablesToFirebase();
-            renderTables();
-          });
-        }
-        // cancel handler
-        itemDiv.querySelector('.cancel-btn').addEventListener('click', async ()=>{
-          // return stock (undo)
-          if(stock[it.item] !== undefined && stock[it.item] !== Infinity){
-            stock[it.item] = (stock[it.item] || 0) + it.quantity;
-            await saveStockToFirebase();
-          }
-          // remove item
-          const idx = sub.items.findIndex(x=>x.id === it.id);
-          if(idx !== -1) sub.items.splice(idx,1);
-          sub.totalPrice = sub.items.reduce((s,i)=>s + i.price*i.quantity, 0);
-          // if no items left in sub, remove sub
-          if(sub.items.length === 0){
-            const sIndex = tableOrder.subOrders.findIndex(sx => sx.personID === sub.personID);
-            if(sIndex !== -1) tableOrder.subOrders.splice(sIndex,1);
-          }
-          if(tableOrder.subOrders.length === 0) delete tables[tableOrder.id];
-          await saveTablesToFirebase();
-          renderTables();
+      sub.items.forEach((item,i)=>{
+        const ib = document.createElement('div'); ib.className='item-box '+(item.status==='served'?'served':'pending');
+        ib.innerHTML = `<div>${item.item} x${item.quantity}</div><div>${item.price*item.quantity} mts</div>`;
+        const servedBtn = document.createElement('button'); servedBtn.className='small served-btn'; servedBtn.textContent='Served';
+        servedBtn.addEventListener('click', async ()=>{ item.status='served'; await saveTablesToFirebase(); renderTables(); });
+        const cancelBtn = document.createElement('button'); cancelBtn.className='small cancel-btn'; cancelBtn.textContent='Cancel';
+        cancelBtn.addEventListener('click', async ()=>{
+          if(stock[item.item]!==undefined && stock[item.item]!==Infinity) stock[item.item]+=item.quantity;
+          sub.items.splice(i,1); sub.totalPrice=sub.items.reduce((s,it)=>s+it.price*it.quantity,0);
+          if(sub.items.length===0) tableOrder.subOrders.splice(subIndex,1);
+          if(tableOrder.subOrders.length===0) delete tables[tableOrder.id];
+          await saveStockToFirebase(); await saveTablesToFirebase(); renderTables();
         });
-
-        p.appendChild(itemDiv);
+        ib.appendChild(servedBtn); ib.appendChild(cancelBtn);
+        controls.appendChild(ib);
       });
 
-      box.appendChild(p);
+      p.appendChild(controls); box.appendChild(p);
     });
 
-    // close table button (only if all served)
-    const closeBtn = document.createElement('button'); closeBtn.className='small'; closeBtn.textContent='Close Table';
+    /* Close Table Button */
+    const closeBtn = document.createElement('button'); closeBtn.className='add-btn'; closeBtn.style.marginTop='10px'; closeBtn.textContent='Close Table';
     closeBtn.addEventListener('click', async ()=>{
-      if(tableOrder.subOrders.some(s => s.items.some(it => it.status === 'pending'))){
-        alert('All items must be served before closing'); return;
-      }
-      tableOrder.tableStatus = 'closed';
-      if(mergedHistory[tableOrder.id]) delete mergedHistory[tableOrder.id];
-      await saveTablesToFirebase();
-      renderTables();
+      if(!confirm('Are you sure you want to close this table? This will remove all orders.')) return;
+      tableOrder.subOrders.forEach(sub=>sub.items.forEach(item=>{
+        if(stock[item.item]!==undefined && stock[item.item]!==Infinity) stock[item.item]+=item.quantity;
+      }));
+      tableOrder.tableStatus='closed';
+      await saveStockToFirebase(); await saveTablesToFirebase(); renderTables();
     });
     box.appendChild(closeBtn);
 
     tablesContainer.appendChild(box);
   });
-
-  renderStockNote();
 }
-
-/* -------------------------
-   helpers: save stock
-   ------------------------- */
-async function saveStockToFirebase(){
-  await setDoc(stockDocRef, { stock });
-}
-
 </script>
 </body>
 </html>
-
