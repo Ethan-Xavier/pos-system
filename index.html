@@ -51,7 +51,6 @@ button {
   position: relative;
 }
 .table-box h3 { text-align: center; margin-bottom: 10px; }
-.table-total { font-weight: bold; text-align: right; margin-bottom: 10px; }
 .item-box { display: flex; justify-content: space-between; align-items: center; border-radius: 10px; padding: 8px; margin: 5px 0; transition: transform 0.2s; }
 .pending-order { background-color: #fff3cd; animation: pulsePending 2s infinite; }
 .served-order { background-color: #d4edda; }
@@ -134,6 +133,7 @@ const menuItems = {
 };
 
 let tables = {};
+let mergedHistory = {}; // stores previous state for splitting merged sub-orders
 
 typeSelect.addEventListener('change',()=>{
   const type = typeSelect.value;
@@ -159,9 +159,7 @@ itemSelect.addEventListener('change',()=>{
       priceSelect.appendChild(opt);
     });
     priceSelect.style.display='block';
-  } else {
-    priceSelect.style.display='none';
-  }
+  } else { priceSelect.style.display='none'; }
 });
 
 document.getElementById('addItemBtn').addEventListener('click', async ()=>{
@@ -172,9 +170,7 @@ document.getElementById('addItemBtn').addEventListener('click', async ()=>{
   let price = priceSelect.style.display==='block'?parseInt(priceSelect.value):menuItems[type].find(m=>m.item===itemName).price[0];
   const quantity = parseInt(document.getElementById('quantity').value);
 
-  if(!tableNum||!type||!itemName||quantity<1||(priceSelect.style.display==='block' && !priceSelect.value)){
-    alert('Select all options'); return;
-  }
+  if(!tableNum||!type||!itemName||quantity<1||(priceSelect.style.display==='block' && !priceSelect.value)){ alert('Select all options'); return; }
 
   let tableID = Object.keys(tables).find(id=>tables[id].table==tableNum && tables[id].tableStatus==='opened');
   if(!tableID){
@@ -207,63 +203,42 @@ function renderTables(){
     const tableBox=document.createElement('div');
     tableBox.className='table-box';
     tableBox.innerHTML=`<h3>Table ${tableOrder.table}</h3>`;
-    
+
     tableOrder.subOrders.forEach(sub=>{
       const personDiv = document.createElement('div');
       personDiv.className='person-box';
       personDiv.innerHTML=`<strong>${sub.description}</strong> | Total: ${sub.totalPrice} mts`;
 
-      // Buttons: Change Table, Split, Merge
+      // Merge / Split buttons
       const actionDiv = document.createElement('div');
       actionDiv.style.marginBottom='5px';
       actionDiv.innerHTML = `
-        <select class="move-table-select">
-          <option value="" disabled selected>Move Table</option>
-          ${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
-        </select>
-        <button class="split-btn">Split</button>
         <button class="merge-btn">Merge</button>
+        <button class="split-btn">Split</button>
       `;
       personDiv.appendChild(actionDiv);
 
-      // Move Table
-      actionDiv.querySelector('.move-table-select').addEventListener('change', async (e)=>{
-        const newTable = e.target.value;
-        let targetTableID = Object.keys(tables).find(id=>tables[id].table==newTable && tables[id].tableStatus==='opened');
-        if(!targetTableID){
-          targetTableID = 'TABLE-'+Date.now();
-          tables[targetTableID] = { id:targetTableID, table:newTable, tableStatus:'opened', time: new Date().toISOString(), subOrders: [] };
+      actionDiv.querySelector('.merge-btn').addEventListener('click', async ()=>{
+        if(tableOrder.subOrders.length<2) { alert('No sub-orders to merge'); return; }
+        mergedHistory[tableOrder.id] = JSON.parse(JSON.stringify(tableOrder.subOrders));
+        const first = tableOrder.subOrders[0];
+        for(let i=1;i<tableOrder.subOrders.length;i++){
+          first.items = first.items.concat(tableOrder.subOrders[i].items);
+          first.description += ' + ' + tableOrder.subOrders[i].description;
+          first.totalPrice = first.items.reduce((sum,i)=>sum+i.price*i.quantity,0);
         }
-        tables[targetTableID].subOrders.push(sub);
-        const index = tableOrder.subOrders.indexOf(sub);
-        if(index!==-1) tableOrder.subOrders.splice(index,1);
-        if(tableOrder.subOrders.length===0) delete tables[tableOrder.id];
+        tableOrder.subOrders = [first];
         await saveTablesToFirebase();
         renderTables();
       });
 
-      // Split
       actionDiv.querySelector('.split-btn').addEventListener('click', async ()=>{
-        const itemToSplit = sub.items.pop(); // take last item as example
-        if(itemToSplit){
-          const newSub = { personID:'PERSON-'+Date.now(), description:sub.description+' Split', items:[itemToSplit], totalPrice:itemToSplit.price*itemToSplit.quantity };
-          tables[tableOrder.id].subOrders.push(newSub);
-          sub.totalPrice = sub.items.reduce((sum,i)=>sum+i.price*i.quantity,0);
+        if(mergedHistory[tableOrder.id]){
+          tableOrder.subOrders = JSON.parse(JSON.stringify(mergedHistory[tableOrder.id]));
+          delete mergedHistory[tableOrder.id];
           await saveTablesToFirebase();
           renderTables();
-        }
-      });
-
-      // Merge
-      actionDiv.querySelector('.merge-btn').addEventListener('click', async ()=>{
-        if(tables[tableOrder.id].subOrders.length<2) { alert('No sub-orders to merge'); return; }
-        const first = tables[tableOrder.id].subOrders[0];
-        const second = tables[tableOrder.id].subOrders[1];
-        first.items = first.items.concat(second.items);
-        first.totalPrice = first.items.reduce((sum,i)=>sum+i.price*i.quantity,0);
-        tables[tableOrder.id].subOrders.splice(1,1);
-        await saveTablesToFirebase();
-        renderTables();
+        } else { alert('No merged sub-orders to split'); }
       });
 
       sub.items.forEach(item=>{
