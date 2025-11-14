@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stylish POS System</title>
+<title>Stylish POS System with Firebase</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
 body {
@@ -146,7 +146,23 @@ button {
 
 <div id="tablesContainer" class="tables-container"></div>
 
-<script>
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC6VdctOXcT-qHaLJs1gEzwzVv5AdK5e0w",
+  authDomain: "pos-system-9a056.firebaseapp.com",
+  projectId: "pos-system-9a056",
+  storageBucket: "pos-system-9a056.firebasestorage.app",
+  messagingSenderId: "701001104012",
+  appId: "1:701001104012:web:294967faec11a627c819a9"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 document.addEventListener('DOMContentLoaded', () => {
 
 const orders = [];
@@ -172,7 +188,7 @@ typeSelect.addEventListener('change',()=>{
   });
 });
 
-document.getElementById('addItemBtn').addEventListener('click',()=>{
+document.getElementById('addItemBtn').addEventListener('click', async ()=>{
   const table=document.getElementById('tableSelect').value;
   const type=typeSelect.value;
   const itemName=itemSelect.value;
@@ -208,7 +224,17 @@ document.getElementById('addItemBtn').addEventListener('click',()=>{
 
   renderTables();
   logOrders();
+  await saveToFirebase(tableOrder, 'openTables');
 });
+
+async function saveToFirebase(order, collectionName){
+  try {
+    await setDoc(doc(db, collectionName, order.id), order);
+    console.log(`Saved to Firebase: ${collectionName} -> ${order.id}`);
+  } catch(e){
+    console.error('Firebase save error:', e);
+  }
+}
 
 function renderTables(){
   tablesContainer.innerHTML='';
@@ -241,14 +267,15 @@ function renderTables(){
       `;
 
       if(item.status==='pending'){
-        itemDiv.querySelector('.served-btn').addEventListener('click',()=>{
+        itemDiv.querySelector('.served-btn').addEventListener('click', async ()=>{
           item.status='served';
           renderTables();
           logOrders();
+          await saveToFirebase(tableOrder, 'openTables');
         });
       }
 
-      itemDiv.querySelector('.cancel-btn').addEventListener('click',()=>{
+      itemDiv.querySelector('.cancel-btn').addEventListener('click', async ()=>{
         const idx = tableOrder.items.indexOf(item);
         if(idx !== -1) tableOrder.items.splice(idx,1);
         tableOrder.totalPrice=tableOrder.items.reduce((sum,i)=>sum+i.price*i.quantity,0);
@@ -258,6 +285,7 @@ function renderTables(){
         }
         renderTables();
         logOrders();
+        await saveToFirebase(tableOrder, 'openTables');
       });
 
       tableBox.appendChild(itemDiv);
@@ -268,7 +296,7 @@ function renderTables(){
     const closeBtn=document.createElement('button');
     closeBtn.textContent='Close Table';
     closeBtn.className='close-btn';
-    closeBtn.addEventListener('click',()=>{
+    closeBtn.addEventListener('click', async ()=>{
       if(tableOrder.items.some(i=>i.status==='pending')){
         alert('Cannot close table: all items must be served!');
         return;
@@ -278,6 +306,7 @@ function renderTables(){
       if(idx!==-1) orders.splice(idx,1);
       renderTables();
       logOrders();
+      await saveToFirebase(tableOrder, 'closedTables');
     });
 
     tableBox.appendChild(closeBtn);
@@ -290,6 +319,7 @@ function logOrders(){
   console.log('Open Tables:', JSON.parse(JSON.stringify(orders)));
   console.log('Closed Tables:', JSON.parse(JSON.stringify(closedTables)));
 }
+
 });
 </script>
 </body>
