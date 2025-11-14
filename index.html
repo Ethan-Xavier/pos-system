@@ -146,11 +146,11 @@ button {
 
 <div id="tablesContainer" class="tables-container"></div>
 
-<!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+/* Firebase config */
 const firebaseConfig = {
   apiKey: "AIzaSyC6VdctOXcT-qHaLJs1gEzwzVv5AdK5e0w",
   authDomain: "pos-system-9a056.firebaseapp.com",
@@ -160,23 +160,24 @@ const firebaseConfig = {
   appId: "1:701001104012:web:294967faec11a627c819a9"
 };
 
+/* Initialize Firebase */
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
 
-const orders = [];
-const closedTables = [];
-
+const tablesContainer = document.getElementById('tablesContainer');
 const typeSelect = document.getElementById('typeSelect');
 const itemSelect = document.getElementById('itemSelect');
-const tablesContainer = document.getElementById('tablesContainer');
 
 const menuItems = {
   food: [ {item:'Burger',price:5},{item:'Pizza',price:8},{item:'Salad',price:4},{item:'Pasta',price:7} ],
   drink: [ {item:'Water',price:1},{item:'Soda',price:2},{item:'Juice',price:3},{item:'Coffee',price:2} ]
 };
 
+let tables = {}; // { tableID: tableObject }
+
+/* Type -> Items dropdown */
 typeSelect.addEventListener('change',()=>{
   const type=typeSelect.value;
   itemSelect.innerHTML='<option value="" disabled selected>Select Item</option>';
@@ -188,137 +189,124 @@ typeSelect.addEventListener('change',()=>{
   });
 });
 
+/* Add Item */
 document.getElementById('addItemBtn').addEventListener('click', async ()=>{
-  const table=document.getElementById('tableSelect').value;
-  const type=typeSelect.value;
-  const itemName=itemSelect.value;
-  const quantity=parseInt(document.getElementById('quantity').value);
+  const tableNum = document.getElementById('tableSelect').value;
+  const type = typeSelect.value;
+  const itemName = itemSelect.value;
+  const quantity = parseInt(document.getElementById('quantity').value);
+  if(!tableNum||!type||!itemName||quantity<1){alert('Select table, type, item, quantity'); return;}
 
-  if(!table||!type||!itemName||quantity<1){alert('Select table, type, item, quantity'); return;}
-
-  const menuItem=menuItems[type].find(m=>m.item===itemName);
-
-  let tableOrder=orders.find(o=>o.table===table);
-  if(!tableOrder){
-    tableOrder={
-      id:`TABLE-${table}-${Date.now()}`,
-      table:table,
-      items:[],
-      totalPrice:0,
-      time:new Date().toLocaleString()
+  const menuItem = menuItems[type].find(m=>m.item===itemName);
+  const tableID = `TABLE-${tableNum}`;
+  if(!tables[tableID]){
+    tables[tableID] = {
+      id: tableID,
+      table: tableNum,
+      items: [],
+      totalPrice: 0,
+      tableStatus: 'opened',
+      time: new Date().toISOString()
     };
-    orders.push(tableOrder);
   }
 
-  tableOrder.items.push({
-    item:menuItem.item,
-    price:menuItem.price,
+  tables[tableID].items.push({
+    item: menuItem.item,
+    price: menuItem.price,
     quantity,
-    status:'pending',
-    time:new Date().toISOString(),
-    isNew:true
+    status: 'pending',
+    time: new Date().toISOString(),
+    isNew: true
   });
 
-  tableOrder.items.sort((a,b)=>new Date(b.time) - new Date(a.time));
-  tableOrder.totalPrice=tableOrder.items.reduce((sum,i)=>sum+i.price*i.quantity,0);
-
+  tables[tableID].totalPrice = tables[tableID].items.reduce((sum,i)=>sum+i.price*i.quantity,0);
   renderTables();
-  logOrders();
-  await saveToFirebase(tableOrder, 'openTables');
+  await saveTablesToFirebase();
 });
 
-async function saveToFirebase(order, collectionName){
-  try {
-    await setDoc(doc(db, collectionName, order.id), order);
-    console.log(`Saved to Firebase: ${collectionName} -> ${order.id}`);
-  } catch(e){
-    console.error('Firebase save error:', e);
+/* Save all tables */
+async function saveTablesToFirebase(){
+  const tablesDocRef = doc(db,'posData','tables');
+  await setDoc(tablesDocRef,{tables});
+}
+
+/* Fetch tables */
+async function fetchTables(){
+  const tablesDocRef = doc(db,'posData','tables');
+  const snapshot = await getDoc(tablesDocRef);
+  if(snapshot.exists()){
+    tables = snapshot.data().tables || {};
+    for(let key in tables){
+      const t = tables[key];
+      t.time = new Date(t.time);
+      t.items.forEach(i=>{ i.time = new Date(i.time); i.isNew=false; });
+    }
+    renderTables();
   }
 }
 
+/* Render only opened tables */
 function renderTables(){
   tablesContainer.innerHTML='';
-  const sortedOrders = [...orders].sort((a,b)=>new Date(b.time) - new Date(a.time));
+  Object.values(tables)
+    .filter(t => t.tableStatus==='opened')
+    .sort((a,b)=>b.time - a.time)
+    .forEach(tableOrder=>{
+      const tableBox=document.createElement('div');
+      tableBox.className='table-box';
+      tableBox.innerHTML=`<h3>Table ${tableOrder.table}</h3><div class="table-total">Total: $${tableOrder.totalPrice}</div>`;
 
-  sortedOrders.forEach(tableOrder=>{
-    const tableBox=document.createElement('div');
-    tableBox.className='table-box';
-    tableBox.innerHTML=`<h3>Table ${tableOrder.table}</h3><div class="table-total">Total: $${tableOrder.totalPrice}</div>`;
-
-    tableOrder.items.forEach((item,index)=>{
-      const itemDiv=document.createElement('div');
-      itemDiv.className='item-box';
-      itemDiv.classList.add(item.status==='pending'?'pending-order':'served-order');
-      if(item.isNew) {
-        itemDiv.classList.add('new-order');
-        setTimeout(()=>{item.isNew=false; renderTables();}, 1000);
-      }
-
-      itemDiv.innerHTML=`
-        <div class="item-info">
-          <strong>${item.item} x${item.quantity}</strong>
-          <span class="${item.status==='pending'?'status-pending':'status-served'}">[${item.status}]</span>
-          <span>$${item.price*item.quantity}</span>
-        </div>
-        <div class="item-buttons">
-          ${item.status==='pending'?`<button class="served-btn"><i class="fas fa-check"></i> Served</button>`:''}
-          <button class="cancel-btn"><i class="fas fa-times"></i> Cancel</button>
-        </div>
-      `;
-
-      if(item.status==='pending'){
-        itemDiv.querySelector('.served-btn').addEventListener('click', async ()=>{
-          item.status='served';
-          renderTables();
-          logOrders();
-          await saveToFirebase(tableOrder, 'openTables');
-        });
-      }
-
-      itemDiv.querySelector('.cancel-btn').addEventListener('click', async ()=>{
-        const idx = tableOrder.items.indexOf(item);
-        if(idx !== -1) tableOrder.items.splice(idx,1);
-        tableOrder.totalPrice=tableOrder.items.reduce((sum,i)=>sum+i.price*i.quantity,0);
-        if(tableOrder.items.length===0){
-          const index=orders.indexOf(tableOrder);
-          if(index!==-1) orders.splice(index,1);
+      tableOrder.items.forEach(item=>{
+        const itemDiv=document.createElement('div');
+        itemDiv.className='item-box '+(item.status==='pending'?'pending-order':'served-order');
+        if(item.isNew){ itemDiv.classList.add('new-order'); setTimeout(()=>{item.isNew=false; renderTables();},1000); }
+        itemDiv.innerHTML=`
+          <div class="item-info">
+            <strong>${item.item} x${item.quantity}</strong>
+            <span>[${item.status}]</span>
+            <span>$${item.price*item.quantity}</span>
+          </div>
+          <div class="item-buttons">
+            ${item.status==='pending'?`<button class="served-btn">Served</button>`:''}
+            <button class="cancel-btn">Cancel</button>
+          </div>
+        `;
+        if(item.status==='pending'){
+          itemDiv.querySelector('.served-btn').addEventListener('click', async ()=>{
+            item.status='served';
+            renderTables();
+            await saveTablesToFirebase();
+          });
         }
-        renderTables();
-        logOrders();
-        await saveToFirebase(tableOrder, 'openTables');
+        itemDiv.querySelector('.cancel-btn').addEventListener('click', async ()=>{
+          const idx = tableOrder.items.indexOf(item);
+          if(idx!==-1) tableOrder.items.splice(idx,1);
+          tableOrder.totalPrice = tableOrder.items.reduce((sum,i)=>sum+i.price*i.quantity,0);
+          if(tableOrder.items.length===0){
+            tables[tableOrder.id].tableStatus='closed';
+          }
+          renderTables();
+          await saveTablesToFirebase();
+        });
+        tableBox.appendChild(itemDiv);
       });
 
-      tableBox.appendChild(itemDiv);
+      const closeBtn=document.createElement('button');
+      closeBtn.textContent='Close Table';
+      closeBtn.className='close-btn';
+      closeBtn.addEventListener('click', async ()=>{
+        if(tableOrder.items.some(i=>i.status==='pending')){ alert('All items must be served!'); return; }
+        tables[tableOrder.id].tableStatus='closed';
+        renderTables();
+        await saveTablesToFirebase();
+      });
+      tableBox.appendChild(closeBtn);
+      tablesContainer.appendChild(tableBox);
     });
-
-    if(tableBox.lastChild){ tableBox.lastChild.scrollIntoView({behavior:"smooth"}); }
-
-    const closeBtn=document.createElement('button');
-    closeBtn.textContent='Close Table';
-    closeBtn.className='close-btn';
-    closeBtn.addEventListener('click', async ()=>{
-      if(tableOrder.items.some(i=>i.status==='pending')){
-        alert('Cannot close table: all items must be served!');
-        return;
-      }
-      closedTables.push({...tableOrder, closingTime:new Date().toLocaleString()});
-      const idx=orders.indexOf(tableOrder);
-      if(idx!==-1) orders.splice(idx,1);
-      renderTables();
-      logOrders();
-      await saveToFirebase(tableOrder, 'closedTables');
-    });
-
-    tableBox.appendChild(closeBtn);
-    tablesContainer.appendChild(tableBox);
-  });
 }
 
-function logOrders(){
-  console.clear();
-  console.log('Open Tables:', JSON.parse(JSON.stringify(orders)));
-  console.log('Closed Tables:', JSON.parse(JSON.stringify(closedTables)));
-}
+/* Initial fetch */
+fetchTables();
 
 });
 </script>
