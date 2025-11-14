@@ -140,8 +140,6 @@ button {
   <option value="" disabled selected>Select Item</option>
 </select>
 
-<select id="priceSelect" style="display:none"></select>
-
 <input type="number" id="quantity" placeholder="Quantity" min="1" value="1">
 <button id="addItemBtn" class="add-btn"><i class="fas fa-plus"></i> Add Item</button>
 </div>
@@ -150,8 +148,9 @@ button {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+/* Firebase config */
 const firebaseConfig = {
   apiKey: "AIzaSyC6VdctOXcT-qHaLJs1gEzwzVv5AdK5e0w",
   authDomain: "pos-system-9a056.firebaseapp.com",
@@ -161,160 +160,161 @@ const firebaseConfig = {
   appId: "1:701001104012:web:294967faec11a627c819a9"
 };
 
+/* Initialize Firebase */
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
+  const tablesContainer = document.getElementById('tablesContainer');
+  const typeSelect = document.getElementById('typeSelect');
+  const itemSelect = document.getElementById('itemSelect');
 
-const tablesContainer = document.getElementById('tablesContainer');
-const typeSelect = document.getElementById('typeSelect');
-const itemSelect = document.getElementById('itemSelect');
-const priceSelect = document.getElementById('priceSelect');
+  const menuItems = {
+    food: [
+      {item:'Salsicha',price:['200mts']},{item:'Sasicha c/ Queijo',price:['300mts']},{item:'Worse',price:['200mts']},{item:'Babalaza',price:['300mts']},{item:'Rabada',price:['200mts']},{item:'Língua',price:['200mts']},{item:'Brisket',price:['400mts']},{item:'Figado de vaca',price:['300mts']},{item:'Cordornizes',price:['350mts']},{item:'Moela',price:['300mts']},{item:'Sopa de legumes',price:['270mts']},{item:'Sopa de Feijão',price:['220mts']},{item:'Salgadinhos (dose)',price:['100mts']},{item:'Pizza Grande',price:['600mts']},{item:'Pizza Pequena',price:['350mts']},{item:'Picanha',price:['500mts']},{item:'T-Bone',price:['450mts']},{item:'Lombo',price:['300mts']},{item:'Bife',price:['600mts']},{item:'Bitoque',price:['500mts']},{item:'Prego Completo',price:['250mts']},{item:'Prego no Prato',price:['300mts']},{item:'Lasanha',price:['600mts']},{item:'Pernil',price:['350mts']},{item:'Carne de Porco',price:['350mts']},{item:'Costuleta',price:['500mts','850mts']},{item:'Frango Inteiro',price:['700mts']},{item:'Meio Frango',price:['350mts']},{item:'Dose de Frango',price:['250mts']},{item:'Peixe c/m legumes',price:['600mts']}
+    ],
+    drink: [
+      {item:'2M Grande',price:['70mts']},{item:'Savana',price:['80mts']},{item:'Heineken',price:['80mts']},{item:'Heineken Grande',price:['70mts']},{item:'Impala',price:['60mts']},{item:'Txilar a lata',price:['60mts']},{item:'Txilar garrafa',price:['70mts']},{item:'Corona',price:['100mts']},{item:'Brutal a garafa',price:['80mts']},{item:'Brutal a lata',price:['100mts']},{item:'Água Tônica',price:['70mts']},{item:'May fair',price:['90mts']},{item:'Flying Fish',price:['80mts']},{item:'Lite',price:['80mts']},{item:'Black Crown',price:['80mts']},{item:'Stella',price:['100mts']},{item:'Bernina',price:['90mts']},{item:'Whisky Jameson',price:['150mts','1250mts']},{item:'Amarula',price:['150mts','850mts']},{item:'Paul Cluver Branco',price:['850mts']},{item:'Roodberg Black',price:['900mts']},{item:'Vinho da Casa',price:['200mts']},{item:'Refresco 2L',price:['110mts']},{item:'Refresco 1L',price:['70mts']},{item:'Refresco a lata',price:['70mts']},{item:'Sumo compal',price:['70mts']},{item:'Sumo compal 1L',price:['140mts']},{item:'Chá Simples',price:['50mts']}
+    ]
+  };
 
-const menuItems = {
-  food: [
-    {item:'Salsicha',price:200},{item:'Sasicha c/ Queijo',price:300},{item:'Worse',price:200},
-    {item:'Babalaza',price:300},{item:'Rabada',price:200},{item:'Língua',price:200},{item:'Brisket',price:400},
-    {item:'Figado de vaca',price:300},{item:'Cordornizes',price:350},{item:'Moela',price:300},{item:'Sopa de legumes',price:270},
-    {item:'Sopa de Feijão',price:220},{item:'Salgadinhos (dose)',price:100},{item:'Pizza Grande',price:600},{item:'Pizza Pequena',price:350},
-    {item:'Picanha',price:500},{item:'T-Bone',price:450},{item:'Lombo',price:300},{item:'Bife',price:600},{item:'Bitoque',price:500},
-    {item:'Prego Completo',price:250},{item:'Prego no Prato',price:300},{item:'Lasanha',price:600},{item:'Pernil',price:350},
-    {item:'Carne de Porco',price:350},{item:'Costuleta',price:'500/850'},{item:'Frango Inteiro',price:700},{item:'Meio Frango',price:350},
-    {item:'Dose de Frango',price:250},{item:'Peixe c/m legumes',price:600}
-  ],
-  drink: [
-    {item:'2M Grande',price:70},{item:'Savana',price:80},{item:'Heineken',price:80},{item:'Heineken Grande',price:70},
-    {item:'Impala',price:60},{item:'Txilar a lata',price:60},{item:'Txilar garrafa',price:70},{item:'Corona',price:100},
-    {item:'Brutal a garafa',price:80},{item:'Brutal a lata',price:100},{item:'Água Tônica',price:70},{item:'May fair',price:90},
-    {item:'Flying Fish',price:80},{item:'Lite',price:80},{item:'Black Crown',price:80},{item:'Stella',price:100},
-    {item:'Bernina',price:90},{item:'Whisky Jameson',price:'150/1250'},{item:'Amarula',price:'150/850'},{item:'Paul Cluver Branco',price:850},
-    {item:'Roodberg Black',price:900},{item:'Vinho da Casa',price:200},{item:'Refresco 2L',price:110},{item:'Refresco 1L',price:70},
-    {item:'Refresco a lata',price:70},{item:'Sumo compal',price:70},{item:'Sumo compal 1L',price:140},{item:'Chá Simples',price:50}
-  ]
-};
+  let tables = {}; // tableID: tableObject
 
-let tables = {};
-
-// Populate items
-typeSelect.addEventListener('change',()=>{
-  const type = typeSelect.value;
-  itemSelect.innerHTML='<option value="" disabled selected>Select Item</option>';
-  priceSelect.style.display='none';
-  priceSelect.innerHTML='';
-  menuItems[type].forEach(menuItem=>{
-    const option=document.createElement('option');
-    option.value=menuItem.item;
-    option.textContent=menuItem.item + (typeof menuItem.price === 'number' ? ` (${menuItem.price}mts)` : '');
-    itemSelect.appendChild(option);
-  });
-});
-
-// Show price options if multi-price item
-itemSelect.addEventListener('change',()=>{
-  const type = typeSelect.value;
-  const selected = menuItems[type].find(i=>i.item===itemSelect.value);
-  if(selected){
-    if(typeof selected.price === 'string'){
-      priceSelect.style.display='block';
-      priceSelect.innerHTML='<option value="" disabled selected>Select Price</option>';
-      selected.price.split('/').forEach(p=>{
-        const opt=document.createElement('option');
-        opt.value=p;
-        opt.textContent=p+'mts';
-        priceSelect.appendChild(opt);
-      });
-    } else {
-      priceSelect.style.display='none';
-    }
-  }
-});
-
-// Add Item
-document.getElementById('addItemBtn').addEventListener('click', async ()=>{
-  const tableNum = document.getElementById('tableSelect').value;
-  const type = typeSelect.value;
-  const itemName = itemSelect.value;
-  const quantity = parseInt(document.getElementById('quantity').value);
-  let price;
-  if(priceSelect.style.display==='block') price=parseInt(priceSelect.value);
-  else price = menuItems[type].find(i=>i.item===itemName).price;
-
-  if(!tableNum||!type||!itemName||quantity<1||price===undefined){alert('Select table, type, item, quantity, price'); return;}
-
-  const timestamp = Date.now();
-  let tableID = `TABLE-${tableNum}`;
-  const existingOpenTable = Object.values(tables).find(t=>t.table==tableNum && t.tableStatus==='opened');
-  if(existingOpenTable) tableID = existingOpenTable.id;
-  else tableID = `TABLE-${tableNum}-${timestamp}`;
-
-  if(!tables[tableID]){
-    tables[tableID] = {id: tableID, table: tableNum, items:[], totalPrice:0, tableStatus:'opened', time:new Date().toISOString()};
-  }
-
-  tables[tableID].items.push({item:itemName, price:price, quantity, status:'pending', time:new Date().toISOString(), isNew:true});
-  tables[tableID].totalPrice = tables[tableID].items.reduce((sum,i)=>sum+i.price*i.quantity,0);
-  renderTables();
-  await saveTablesToFirebase();
-});
-
-async function saveTablesToFirebase(){
-  const tablesDocRef = doc(db,'posData','tables');
-  await setDoc(tablesDocRef,{tables});
-}
-
-// Auto-update
-const tablesDocRef = doc(db,'posData','tables');
-onSnapshot(tablesDocRef,(snapshot)=>{
-  if(snapshot.exists()) tables = snapshot.data().tables || {};
-  renderTables();
-});
-
-// Render tables
-function renderTables(){
-  tablesContainer.innerHTML='';
-  Object.values(tables).filter(t=>t.tableStatus==='opened')
-    .sort((a,b)=>new Date(b.time)-new Date(a.time))
-    .forEach(tableOrder=>{
-      const tableBox=document.createElement('div');
-      tableBox.className='table-box';
-      tableBox.innerHTML=`<h3>Table ${tableOrder.table}</h3><div class="table-total">Total: ${tableOrder.totalPrice}mts</div>`;
-
-      tableOrder.items.forEach(item=>{
-        const itemDiv=document.createElement('div');
-        itemDiv.className='item-box '+(item.status==='pending'?'pending-order':'served-order');
-        if(item.isNew){itemDiv.classList.add('new-order'); setTimeout(()=>{item.isNew=false; renderTables();},1000);}
-        itemDiv.innerHTML=`
-          <div class="item-info">
-            <strong>${item.item} x${item.quantity}</strong>
-            <span>[${item.status}]</span>
-            <span>${item.price*item.quantity}mts</span>
-          </div>
-          <div class="item-buttons">
-            ${item.status==='pending'?`<button class="served-btn">Served</button>`:''}
-            <button class="cancel-btn">Cancel</button>
-          </div>
-        `;
-        if(item.status==='pending') itemDiv.querySelector('.served-btn').addEventListener('click', async ()=>{item.status='served'; renderTables(); await saveTablesToFirebase();});
-        itemDiv.querySelector('.cancel-btn').addEventListener('click', async ()=>{const idx=tableOrder.items.indexOf(item);if(idx!==-1)tableOrder.items.splice(idx,1);tableOrder.totalPrice=tableOrder.items.reduce((sum,i)=>sum+i.price*i.quantity,0);if(tableOrder.items.length===0)tables[tableOrder.id].tableStatus='closed';renderTables();await saveTablesToFirebase();});
-        tableBox.appendChild(itemDiv);
-      });
-
-      const closeBtn=document.createElement('button');
-      closeBtn.textContent='Close Table';
-      closeBtn.className='close-btn';
-      closeBtn.addEventListener('click', async ()=>{
-        if(tableOrder.items.some(i=>i.status==='pending')){alert('All items must be served!'); return;}
-        tables[tableOrder.id].tableStatus='closed';
-        renderTables();
-        await saveTablesToFirebase();
-      });
-      tableBox.appendChild(closeBtn);
-      tablesContainer.appendChild(tableBox);
+  typeSelect.addEventListener('change',()=>{
+    const type=typeSelect.value;
+    itemSelect.innerHTML='<option value="" disabled selected>Select Item</option>';
+    menuItems[type].forEach(menuItem=>{
+      const option=document.createElement('option');
+      option.value=menuItem.item;
+      option.textContent=menuItem.item;
+      itemSelect.appendChild(option);
     });
-}
+  });
+
+  document.getElementById('addItemBtn').addEventListener('click', async ()=>{
+    const tableNum = document.getElementById('tableSelect').value;
+    const type = typeSelect.value;
+    const itemName = itemSelect.value;
+    const quantity = parseInt(document.getElementById('quantity').value);
+    if(!tableNum||!type||!itemName||quantity<1){alert('Select table, type, item, quantity'); return;}
+
+    const menuItem = menuItems[type].find(m=>m.item===itemName);
+    let price = menuItem.price[0];
+    if(menuItem.price.length>1){
+      const selectedPrice = prompt(`Select price for ${menuItem.item}: ${menuItem.price.join(', ')}`);
+      if(!menuItem.price.includes(selectedPrice)) { alert('Invalid price'); return;}
+      price = selectedPrice;
+    }
+
+    let tableID = `TABLE-${tableNum}`;
+    if(tables[tableID] && tables[tableID].tableStatus==='closed'){
+      tableID = `TABLE-${tableNum}-${Date.now()}`;
+    }
+
+    if(!tables[tableID]){
+      tables[tableID] = {
+        id: tableID,
+        table: tableNum,
+        items: [],
+        totalPrice: 0,
+        tableStatus: 'opened',
+        time: new Date().toString()
+      };
+    }
+
+    tables[tableID].items.push({
+      item: menuItem.item,
+      price,
+      quantity,
+      status: 'pending',
+      time: new Date().toString(),
+      isNew: true
+    });
+
+    tables[tableID].totalPrice = tables[tableID].items.reduce((sum,i)=>parseInt(i.price)*i.quantity + sum,0);
+    renderTables();
+    await saveTablesToFirebase();
+  });
+
+  async function saveTablesToFirebase(){
+    const tablesDocRef = doc(db,'posData','tables');
+    await setDoc(tablesDocRef,{tables});
+  }
+
+  function renderTables(){
+    tablesContainer.innerHTML='';
+    Object.values(tables)
+      .filter(t => t.tableStatus==='opened')
+      .sort((a,b)=>new Date(b.time) - new Date(a.time))
+      .forEach(tableOrder=>{
+        const tableBox=document.createElement('div');
+        tableBox.className='table-box';
+        tableBox.innerHTML='<h3>Table '+tableOrder.table+'</h3><div class="table-total">Total: '+tableOrder.totalPrice+'mts</div>';
+
+        tableOrder.items.forEach(item=>{
+          const itemDiv=document.createElement('div');
+          itemDiv.className='item-box '+(item.status==='pending'?'pending-order':'served-order');
+          if(item.isNew){ itemDiv.classList.add('new-order'); setTimeout(()=>{item.isNew=false; renderTables();},1000); }
+
+          let buttonsHTML = '';
+          if(item.status==='pending') buttonsHTML += '<button class="served-btn">Served</button>';
+          buttonsHTML += '<button class="cancel-btn">Cancel</button>';
+
+          itemDiv.innerHTML =
+            '<div class="item-info">' +
+              '<strong>' + item.item + ' x' + item.quantity + '</strong>' +
+              '<span>[' + item.status + ']</span>' +
+              '<span>' + item.price*item.quantity + 'mts</span>' +
+            '</div>' +
+            '<div class="item-buttons">' + buttonsHTML + '</div>';
+
+          if(item.status==='pending'){
+            itemDiv.querySelector('.served-btn').addEventListener('click', async ()=>{
+              item.status='served';
+              renderTables();
+              await saveTablesToFirebase();
+            });
+          }
+
+          itemDiv.querySelector('.cancel-btn').addEventListener('click', async ()=>{
+            const idx = tableOrder.items.indexOf(item);
+            if(idx!==-1) tableOrder.items.splice(idx,1);
+            tableOrder.totalPrice = tableOrder.items.reduce((sum,i)=>parseInt(i.price)*i.quantity + sum,0);
+            if(tableOrder.items.length===0) tables[tableOrder.id].tableStatus='closed';
+            renderTables();
+            await saveTablesToFirebase();
+          });
+
+          tableBox.appendChild(itemDiv);
+        });
+
+        const closeBtn=document.createElement('button');
+        closeBtn.textContent='Close Table';
+        closeBtn.className='close-btn';
+        closeBtn.addEventListener('click', async ()=>{
+          if(tableOrder.items.some(i=>i.status==='pending')){ alert('All items must be served!'); return; }
+          tables[tableOrder.id].tableStatus='closed';
+          renderTables();
+          await saveTablesToFirebase();
+        });
+        tableBox.appendChild(closeBtn);
+        tablesContainer.appendChild(tableBox);
+      });
+  }
+
+  const tablesDocRef = doc(db,'posData','tables');
+  onSnapshot(tablesDocRef, snapshot=>{
+    if(snapshot.exists()){
+      const dbData = snapshot.data().tables || {};
+      tables = dbData;
+      Object.values(tables).forEach(t=>{
+        t.items.forEach(i=>i.isNew=false);
+      });
+      renderTables();
+    }
+  });
 
 });
 </script>
 </body>
 </html>
-
