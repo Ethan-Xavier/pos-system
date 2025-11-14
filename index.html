@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Waiter POS — Full Version</title>
+<title>Waiter POS — TRUE MERGE</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
   :root{--primary:#0062ca;--green:#28a745;--muted:#f4f4f4}
@@ -21,7 +21,6 @@
   .item-box{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;margin:6px 0;background:#fff}
   .pending{background:#fff7e6}
   .served{background:#e9f7ee}
-  .paid{background:#d4edda}
   button.small{padding:6px 8px;border-radius:8px;border:none;cursor:pointer}
   .served-btn{background:var(--green);color:#fff}
   .cancel-btn{background:#dc3545;color:#fff}
@@ -29,11 +28,12 @@
   .split-btn{background:#ffc107;color:#222}
   .move-select{padding:6px;border-radius:6px}
   .controls-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
-  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:100;display:none}
-  .overlay-content{background:#fff;padding:20px;border-radius:12px;width:360px;max-height:90%;overflow:auto;display:flex;flex-direction:column;gap:12px}
-  .pay-btn{background:var(--green);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer}
-  .pay-methods button{padding:8px 10px;border-radius:6px;border:none;margin-right:6px;cursor:pointer}
-  .pay-methods button.selected{background:var(--primary);color:#fff}
+  .pay-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);display:none;justify-content:center;align-items:center;z-index:1000}
+  .pay-box{background:#fff;padding:20px;border-radius:12px;width:320px;max-height:90%;overflow:auto}
+  .pay-box h3{margin-top:0;margin-bottom:12px;text-align:center}
+  .pay-row{display:flex;justify-content:space-between;margin-bottom:6px}
+  .payment-method{width:100%;padding:8px;margin-bottom:10px;border-radius:6px;border:1px solid #ccc}
+  .paid-btn{background:var(--green);color:#fff;padding:8px;width:100%;border:none;border-radius:8px;cursor:pointer}
   @media(max-width:760px){ .order-box,.table-box{width:92%} .tables-container{flex-direction:column;align-items:center} }
 </style>
 </head>
@@ -59,26 +59,23 @@
   <label>Quantity</label>
   <input id="quantity" type="number" min="1" value="1" />
 
-  <div style="display:flex;gap:8px;align-items:center">
-    <button id="addItemBtn" class="add-btn"><i class="fas fa-plus"></i> Add Item</button>
-  </div>
-
-  <div class="note">Merge produces one sub-order named "Merged Order". You can pay tables or individual sub-orders.</div>
+  <button id="addItemBtn" class="add-btn"><i class="fas fa-plus"></i> Add Item</button>
 </div>
 
 <div id="tablesContainer" class="tables-container"></div>
 
-<div id="payOverlay" class="overlay">
-  <div class="overlay-content">
-    <h3>Payment</h3>
-    <div id="paySubOrders"></div>
-    <div class="pay-methods">
-      <button data-method="Mobile">Mobile</button>
-      <button data-method="Card">Card</button>
-      <button data-method="Cash">Cash</button>
-    </div>
-    <button id="payConfirmBtn" class="pay-btn">Paid</button>
-    <button id="payCancelBtn" class="pay-btn" style="background:#dc3545">Cancel</button>
+<div class="pay-overlay" id="payOverlay">
+  <div class="pay-box">
+    <h3>Pay Table</h3>
+    <div id="receiptContainer"></div>
+    <label>Payment Method</label>
+    <select id="paymentMethod" class="payment-method">
+      <option value="" disabled selected>Select method</option>
+      <option value="Mobile">Mobile</option>
+      <option value="Card">Card</option>
+      <option value="Cash">Cash</option>
+    </select>
+    <button id="paidBtn" class="paid-btn">Paid</button>
   </div>
 </div>
 
@@ -86,13 +83,20 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const firebaseConfig = { /* Your config here */ };
+// --- Firebase config ---
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* -------------------------
-   UI elements
-------------------------- */
+// --- UI Elements ---
 const tableSelect = document.getElementById('tableSelect');
 const typeSelect = document.getElementById('typeSelect');
 const itemSelect = document.getElementById('itemSelect');
@@ -101,292 +105,223 @@ const quantityInput = document.getElementById('quantity');
 const descriptionInput = document.getElementById('description');
 const addItemBtn = document.getElementById('addItemBtn');
 const tablesContainer = document.getElementById('tablesContainer');
-
 const payOverlay = document.getElementById('payOverlay');
-const paySubOrdersDiv = document.getElementById('paySubOrders');
-const payConfirmBtn = document.getElementById('payConfirmBtn');
-const payCancelBtn = document.getElementById('payCancelBtn');
-const payMethodButtons = document.querySelectorAll('.pay-methods button');
+const receiptContainer = document.getElementById('receiptContainer');
+const paymentMethod = document.getElementById('paymentMethod');
+const paidBtn = document.getElementById('paidBtn');
 
-/* -------------------------
-   Menu Items (simplified)
-------------------------- */
+// --- Menu ---
 const menuItems = {
-  food: [ {item:'Pizza',price:[600]}, {item:'Burger',price:[400]} ],
-  drink: [ {item:'Coke',price:[50]}, {item:'Water',price:[30]} ]
+  food:[{item:'Pizza',price:[500]},{item:'Burger',price:[200]},{item:'Fries',price:[150]}],
+  drink:[{item:'Cola',price:[50]},{item:'Water',price:[30]},{item:'Juice',price:[70]}]
 };
 
-/* -------------------------
-   Local state
-------------------------- */
+// --- State ---
 let tables = {};
 let mergedHistory = {};
-let payTarget = null;
-let selectedPaymentMethod = null;
+let payingTableID = null;
+let payingSubID = null;
 
-/* -------------------------
-   Firestore refs
-------------------------- */
+// --- Firestore refs ---
 const tablesDocRef = doc(db,'posData','tables');
 
-/* -------------------------
-   Init tables doc
-------------------------- */
+// --- Init tables ---
 (async function initIfEmpty(){
   const tSnap = await getDoc(tablesDocRef);
-  if(!tSnap.exists()) await setDoc(tablesDocRef, { tables: {} });
+  if(!tSnap.exists()) await setDoc(tablesDocRef,{tables:{}});
 })();
 
-/* -------------------------
-   Subscribe tables
-------------------------- */
-onSnapshot(tablesDocRef, snap=>{
-  const data = snap.data();
-  tables = (data && data.tables) ? data.tables : {};
+// --- Subscribe tables ---
+onSnapshot(tablesDocRef,snap=>{
+  tables = snap.data()?.tables || {};
   renderTables();
 });
 
-/* -------------------------
-   Populate table select
-------------------------- */
-for(let i=1;i<=13;i++){ 
-  const opt = document.createElement('option'); opt.value=i; opt.textContent=i; 
-  tableSelect.appendChild(opt); 
+// --- Populate table select ---
+for(let i=1;i<=13;i++){
+  const opt=document.createElement('option'); opt.value=i; opt.textContent=i; tableSelect.appendChild(opt);
 }
 
-/* -------------------------
-   Type -> Item population
-------------------------- */
-typeSelect.addEventListener('change', ()=>{
-  itemSelect.innerHTML = '<option value="" disabled selected>Select item</option>';
-  const arr = menuItems[typeSelect.value] || [];
-  arr.forEach(m=>{
-    const opt = document.createElement('option'); opt.value=m.item; opt.textContent=m.item;
-    itemSelect.appendChild(opt);
-  });
+// --- Type -> Items ---
+typeSelect.addEventListener('change',()=>{
+  itemSelect.innerHTML='<option value="" disabled selected>Select item</option>';
+  const arr = menuItems[typeSelect.value]||[];
+  arr.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.item; opt.textContent=m.item; itemSelect.appendChild(opt); });
   priceSelect.style.display='none';
 });
+itemSelect.addEventListener('change',()=>{
+  const arr = menuItems[typeSelect.value]||[];
+  const menuItem = arr.find(m=>m.item===itemSelect.value);
+  if(menuItem.price.length>1){
+    priceSelect.innerHTML='<option value="" disabled selected>Select price</option>';
+    menuItem.price.forEach(p=>{ const opt=document.createElement('option'); opt.value=p; opt.textContent=p+' mts'; priceSelect.appendChild(opt); });
+    priceSelect.style.display='block';
+  } else priceSelect.style.display='none';
+});
 
-/* -------------------------
-   Add item
-------------------------- */
-addItemBtn.addEventListener('click', async ()=>{
-  const tableNum = tableSelect.value;
-  const type = typeSelect.value;
-  const itemName = itemSelect.value;
-  const price = priceSelect.style.display==='block' ? parseInt(priceSelect.value) : (menuItems[type]||[]).find(m=>m.item===itemName)?.price[0];
-  const qty = parseInt(quantityInput.value) || 1;
-  const desc = (descriptionInput.value || 'Person').trim();
-  if(!tableNum || !type || !itemName || !price || qty<1){ alert('Select Table, Type, Item and Quantity.'); return; }
+// --- Add item ---
+addItemBtn.addEventListener('click',async()=>{
+  const tableNum=tableSelect.value; const type=typeSelect.value; const itemName=itemSelect.value;
+  const price=priceSelect.style.display==='block'?parseInt(priceSelect.value):(menuItems[type]||[]).find(m=>m.item===itemName)?.price[0];
+  const qty=parseInt(quantityInput.value)||1; const desc=(descriptionInput.value||'Person').trim();
+  if(!tableNum||!type||!itemName||!price||qty<1){ alert('Select Table, Type, Item and Quantity.'); return; }
 
-  let tableID = Object.keys(tables).find(id=>tables[id].table==tableNum && tables[id].tableStatus==='opened');
-  if(!tableID){
-    tableID = 'TABLE-'+Date.now();
-    tables[tableID] = { id: tableID, table: tableNum, tableStatus:'opened', time:new Date().toISOString(), subOrders: [] };
-  }
+  let tableID=Object.keys(tables).find(id=>tables[id].table==tableNum && tables[id].tableStatus==='opened');
+  if(!tableID){ tableID='TABLE-'+Date.now(); tables[tableID]={id:tableID,table:tableNum,tableStatus:'opened',time:new Date().toISOString(),subOrders:[]}; }
   const tableOrder = tables[tableID];
 
   let sub = tableOrder.subOrders.find(s=>s.description===desc);
-  if(!sub){
-    sub = { personID:'PERSON-'+Date.now(), description:desc, items:[], totalPrice:0, paid:false, paymentMethod:null };
-    tableOrder.subOrders.push(sub);
-  }
+  if(!sub){ sub={personID:'PERSON-'+Date.now(),description:desc,items:[],totalPrice:0}; tableOrder.subOrders.push(sub); }
 
-  const newItem = { id:'ITEM-'+Date.now(), item:itemName, price, quantity:qty, status:'pending', time:new Date().toISOString() };
+  const newItem={id:'ITEM-'+Date.now(),item:itemName,price,quantity:qty,status:'pending',time:new Date().toISOString()};
   sub.items.push(newItem);
-  sub.totalPrice = sub.items.reduce((s,i)=>s+i.price*i.quantity,0);
-  await saveTablesToFirebase();
+  sub.totalPrice=sub.items.reduce((s,i)=>s+i.price*i.quantity,0);
+
+  await setDoc(tablesDocRef,{tables});
   quantityInput.value=1; descriptionInput.value='';
   renderTables();
 });
 
-/* -------------------------
-   Save tables
-------------------------- */
-async function saveTablesToFirebase(){
-  await setDoc(tablesDocRef,{ tables });
-}
-
-/* -------------------------
-   Render tables
-------------------------- */
+// --- Render Tables ---
 function renderTables(){
   tablesContainer.innerHTML='';
   Object.values(tables).filter(t=>t.tableStatus==='opened').sort((a,b)=>b.time.localeCompare(a.time)).forEach(tableOrder=>{
-    const box = document.createElement('div'); box.className='table-box';
-    const total = (tableOrder.subOrders||[]).reduce((s,sub)=>s + (sub.totalPrice||0),0);
-    box.innerHTML = `<div class="table-head"><div><strong>Table ${tableOrder.table}</strong></div><div class="table-total">${total} mts</div></div>`;
+    const box=document.createElement('div'); box.className='table-box';
+    const total=(tableOrder.subOrders||[]).reduce((s,sub)=>s+(sub.totalPrice||0),0);
+    box.innerHTML=`<div class="table-head"><div><strong>Table ${tableOrder.table}</strong></div><div class="table-total">${total} mts</div></div>`;
 
-    // whole-table move controls
-    const wholeControls = document.createElement('div'); wholeControls.className='controls-row';
-    const moveSelect = document.createElement('select'); moveSelect.className='move-select';
-    moveSelect.innerHTML = `<option value="" disabled selected>Move table</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
-    wholeControls.appendChild(moveSelect);
-    const moveBtn = document.createElement('button'); moveBtn.className='small'; moveBtn.textContent='Move';
-    moveBtn.addEventListener('click', async ()=>{
-      const newTable = moveSelect.value;
-      if(!newTable){ alert('Choose a table'); return; }
-      if(String(newTable)===String(tableOrder.table)){ alert('Already there'); return; }
-      tableOrder.table = newTable; 
-      await saveTablesToFirebase(); renderTables();
+    // table controls
+    const wholeControls=document.createElement('div'); wholeControls.className='controls-row';
+
+    // Move table
+    const moveSelect=document.createElement('select'); moveSelect.className='move-select';
+    moveSelect.innerHTML=`<option value="" disabled selected>Move table</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
+    const moveBtn=document.createElement('button'); moveBtn.className='small'; moveBtn.textContent='Move';
+    moveBtn.addEventListener('click',async()=>{
+      const newTable=moveSelect.value; if(!newTable){ alert('Choose a table'); return; }
+      if(String(newTable)===String(tableOrder.table)){ alert('Already on that table'); return; }
+      tableOrder.table=newTable;
+      if(mergedHistory[tableOrder.id]){ mergedHistory['TABLE-'+Date.now()]=mergedHistory[tableOrder.id]; delete mergedHistory[tableOrder.id]; }
+      await setDoc(tablesDocRef,{tables}); renderTables();
     });
-    wholeControls.appendChild(moveBtn);
+    wholeControls.appendChild(moveSelect); wholeControls.appendChild(moveBtn);
 
-    // Merge button
+    // Merge
     if((tableOrder.subOrders||[]).length>1 && !mergedHistory[tableOrder.id]){
-      const mergeBtn = document.createElement('button'); mergeBtn.className='merge-btn small'; mergeBtn.textContent='Merge';
-      mergeBtn.addEventListener('click', async ()=>{
-        mergedHistory[tableOrder.id] = JSON.parse(JSON.stringify(tableOrder.subOrders));
-        const mergedItems = []; tableOrder.subOrders.forEach(s=>mergedItems.push(...s.items));
-        const mergedSub = { personID:'PERSON-'+Date.now(), description:'Merged Order', items:mergedItems, totalPrice:mergedItems.reduce((s,i)=>s+i.price*i.quantity,0), paid:false, paymentMethod:null };
-        tableOrder.subOrders = [mergedSub];
-        await saveTablesToFirebase(); renderTables();
+      const mergeBtn=document.createElement('button'); mergeBtn.className='merge-btn small'; mergeBtn.textContent='Merge';
+      mergeBtn.addEventListener('click',async()=>{
+        mergedHistory[tableOrder.id]=JSON.parse(JSON.stringify(tableOrder.subOrders));
+        const mergedItems=[]; tableOrder.subOrders.forEach(s=>mergedItems.push(...s.items));
+        tableOrder.subOrders=[{personID:'PERSON-'+Date.now(),description:'Merged Order',items:mergedItems,totalPrice:mergedItems.reduce((s,i)=>s+i.price*i.quantity,0)}];
+        await setDoc(tablesDocRef,{tables}); renderTables();
       });
       wholeControls.appendChild(mergeBtn);
     }
 
-    // Split button
+    // Split
     if(mergedHistory[tableOrder.id]){
-      const splitBtn = document.createElement('button'); splitBtn.className='split-btn small'; splitBtn.textContent='Split';
-      splitBtn.addEventListener('click', async ()=>{
-        tableOrder.subOrders = JSON.parse(JSON.stringify(mergedHistory[tableOrder.id]));
-        delete mergedHistory[tableOrder.id];
-        await saveTablesToFirebase(); renderTables();
+      const splitBtn=document.createElement('button'); splitBtn.className='split-btn small'; splitBtn.textContent='Split';
+      splitBtn.addEventListener('click',async()=>{
+        tableOrder.subOrders=JSON.parse(JSON.stringify(mergedHistory[tableOrder.id]));
+        delete mergedHistory[tableOrder.id]; await setDoc(tablesDocRef,{tables}); renderTables();
       });
       wholeControls.appendChild(splitBtn);
     }
 
+    // Pay Table
+    const payBtn=document.createElement('button'); payBtn.className='small'; payBtn.textContent='Pay Table';
+    payBtn.addEventListener('click',()=>openPayOverlay(tableOrder.id,null));
+    wholeControls.appendChild(payBtn);
+
     box.appendChild(wholeControls);
 
-    // Sub-orders
+    // sub-orders
     (tableOrder.subOrders||[]).forEach((sub,subIndex)=>{
-      const p = document.createElement('div'); p.className='person-box';
-      const statusLabel = sub.paid ? `[PAID: ${sub.paymentMethod}]` : '';
-      p.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${sub.description} ${statusLabel}</strong></div><div>${sub.totalPrice||0} mts</div></div>`;
+      const p=document.createElement('div'); p.className='person-box';
+      p.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${sub.description}</strong></div><div>${sub.totalPrice||0} mts</div></div>`;
 
-      // Move sub-order
-      const controls = document.createElement('div'); controls.className='person-actions';
-      const moveS = document.createElement('select'); moveS.className='move-select';
-      moveS.innerHTML = `<option value="" disabled selected>Move sub-order</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
-      controls.appendChild(moveS);
-      const moveSBtn = document.createElement('button'); moveSBtn.className='small'; moveSBtn.textContent='Move';
-      moveSBtn.addEventListener('click', async ()=>{
-        const newTable = moveS.value; if(!newTable){ alert('Choose table'); return; }
-        if(String(newTable)===String(tableOrder.table)){ alert('Already there'); return; }
-        const moved = JSON.parse(JSON.stringify(sub));
-        tableOrder.subOrders.splice(subIndex,1);
+      // sub controls
+      const controls=document.createElement('div'); controls.className='person-actions';
+      const moveS=document.createElement('select'); moveS.className='move-select';
+      moveS.innerHTML=`<option value="" disabled selected>Move sub-order</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
+      const moveSBtn=document.createElement('button'); moveSBtn.className='small'; moveSBtn.textContent='Move';
+      moveSBtn.addEventListener('click',async()=>{
+        const newTable=moveS.value;if(!newTable){alert('Choose a table');return;}
+        if(String(newTable)===String(tableOrder.table)){alert('Already on that table');return;}
+        const moved=JSON.parse(JSON.stringify(sub)); tableOrder.subOrders.splice(subIndex,1);
         if(!tableOrder.subOrders.length) delete tables[tableOrder.id];
-        let targetID = Object.keys(tables).find(id=>tables[id].table==newTable && tables[id].tableStatus==='opened');
-        if(!targetID){
-          targetID = 'TABLE-'+Date.now();
-          tables[targetID] = { id:targetID, table:newTable, tableStatus:'opened', time:new Date().toISOString(), subOrders:[] };
-        }
+        let targetID=Object.keys(tables).find(id=>tables[id].table==newTable && tables[id].tableStatus==='opened');
+        if(!targetID){ targetID='TABLE-'+Date.now(); tables[targetID]={id:targetID,table:newTable,tableStatus:'opened',time:new Date().toISOString(),subOrders:[]}; }
         tables[targetID].subOrders.push(moved);
         if(mergedHistory[tableOrder.id]) delete mergedHistory[tableOrder.id];
-        await saveTablesToFirebase(); renderTables();
+        await setDoc(tablesDocRef,{tables}); renderTables();
       });
-      controls.appendChild(moveSBtn);
+      controls.appendChild(moveS); controls.appendChild(moveSBtn);
 
-      // Pay button for sub-order
-      const paySubBtn = document.createElement('button'); paySubBtn.className='small'; paySubBtn.textContent='Pay';
-      paySubBtn.addEventListener('click', ()=>{
-        payTarget = { type:'sub', tableID: tableOrder.id, subIndex: subIndex };
-        selectedPaymentMethod = null;
-        payMethodButtons.forEach(b=>b.classList.remove('selected'));
-        paySubOrdersDiv.innerHTML = `<strong>${sub.description} — ${sub.totalPrice} mts</strong>`;
-        payOverlay.style.display='flex';
-      });
-      controls.appendChild(paySubBtn);
+      // Pay sub-order
+      const paySub=document.createElement('button'); paySub.className='small'; paySub.textContent='Pay';
+      paySub.addEventListener('click',()=>openPayOverlay(tableOrder.id,sub.personID));
+      controls.appendChild(paySub);
 
       p.appendChild(controls);
 
-      // Items
+      // items
       sub.items.forEach((it,itIndex)=>{
-        const itemDiv = document.createElement('div');
-        itemDiv.className='item-box ' + (sub.paid ? 'paid' : (it.status==='pending'?'pending':'served'));
-        itemDiv.innerHTML = `
-          <div style="min-width:150px">
-            <div><strong>${it.item} x${it.quantity}</strong></div>
-            <div style="font-size:13px;color:#555">[${it.status}]</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-weight:700">${it.price*it.quantity} mts</div>
-            <div style="margin-top:6px">
-              ${(!sub.paid && it.status==='pending')?`<button class="served-btn small">Served</button>`:''}
-              ${!sub.paid?`<button class="cancel-btn small">Cancel</button>`:''}
-            </div>
-          </div>
-        `;
-
-        if(!sub.paid && it.status==='pending'){
-          itemDiv.querySelector('.served-btn').addEventListener('click', async ()=>{
-            it.status='served';
-            await saveTablesToFirebase(); renderTables();
+        const itemDiv=document.createElement('div'); itemDiv.className='item-box '+(it.status==='pending'?'pending':'served');
+        itemDiv.innerHTML=`<div style="min-width:150px"><div><strong>${it.item} x${it.quantity}</strong></div><div style="font-size:13px;color:#555">[${it.status}]</div></div>
+        <div style="text-align:right"><div style="font-weight:700">${it.price*it.quantity} mts</div>
+        <div style="margin-top:6px">
+        ${it.status==='pending'?`<button class="served-btn small">Served</button>`:''}
+        <button class="cancel-btn small">Cancel</button>
+        </div></div>`;
+        if(it.status==='pending'){
+          itemDiv.querySelector('.served-btn').addEventListener('click',async()=>{
+            it.status='served'; await setDoc(tablesDocRef,{tables}); renderTables();
           });
         }
-
-        if(!sub.paid){
-          itemDiv.querySelector('.cancel-btn').addEventListener('click', async ()=>{
-            sub.items.splice(itIndex,1);
-            sub.totalPrice = sub.items.reduce((s,i)=>s+i.price*i.quantity,0);
-            if(sub.items.length===0) tableOrder.subOrders.splice(subIndex,1);
-            await saveTablesToFirebase(); renderTables();
-          });
-        }
-
+        itemDiv.querySelector('.cancel-btn').addEventListener('click',async()=>{
+          const idx=sub.items.findIndex(x=>x.id===it.id); if(idx!==-1) sub.items.splice(idx,1);
+          sub.totalPrice=sub.items.reduce((s,i)=>s+i.price*i.quantity,0);
+          if(sub.items.length===0){ const sIndex=tableOrder.subOrders.findIndex(sx=>sx.personID===sub.personID); if(sIndex!==-1)tableOrder.subOrders.splice(sIndex,1);}
+          if(tableOrder.subOrders.length===0) delete tables[tableOrder.id];
+          await setDoc(tablesDocRef,{tables}); renderTables();
+        });
         p.appendChild(itemDiv);
       });
 
       box.appendChild(p);
     });
 
-    // Pay full table
-    const payTableBtn = document.createElement('button'); payTableBtn.className='pay-btn'; payTableBtn.textContent='Pay Table';
-    payTableBtn.addEventListener('click', ()=>{
-      payTarget = { type:'table', tableID: tableOrder.id };
-      selectedPaymentMethod = null;
-      payMethodButtons.forEach(b=>b.classList.remove('selected'));
-      const displayText = tableOrder.subOrders.map(s=>`${s.description} — ${s.totalPrice} mts`).join('<br>');
-      paySubOrdersDiv.innerHTML = displayText;
-      payOverlay.style.display='flex';
-    });
-    box.appendChild(payTableBtn);
-
     tablesContainer.appendChild(box);
   });
 }
 
-/* -------------------------
-   Payment overlay actions
-------------------------- */
-payMethodButtons.forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    selectedPaymentMethod = btn.dataset.method;
-    payMethodButtons.forEach(b=>b.classList.remove('selected'));
-    btn.classList.add('selected');
+// --- Pay Overlay ---
+function openPayOverlay(tableID,subID){
+  payingTableID=tableID; payingSubID=subID;
+  receiptContainer.innerHTML='';
+  const tableOrder=tables[tableID];
+  let subs = subID?tableOrder.subOrders.filter(s=>s.personID===subID):tableOrder.subOrders;
+  subs.forEach(sub=>{
+    const div=document.createElement('div'); div.style.marginBottom='6px';
+    div.innerHTML=`<strong>${sub.description}</strong> - ${sub.totalPrice||0} mts`;
+    receiptContainer.appendChild(div);
   });
-});
+  paymentMethod.value='';
+  payOverlay.style.display='flex';
+}
 
-payConfirmBtn.addEventListener('click', async ()=>{
-  if(!selectedPaymentMethod){ alert('Select payment method'); return; }
-  if(!payTarget) return;
-
-  if(payTarget.type==='sub'){
-    const sub = tables[payTarget.tableID].subOrders[payTarget.subIndex];
-    sub.paid=true; sub.paymentMethod=selectedPaymentMethod;
-  }else if(payTarget.type==='table'){
-    tables[payTarget.tableID].subOrders.forEach(s=>{ s.paid=true; s.paymentMethod=selectedPaymentMethod; });
-  }
-
-  await saveTablesToFirebase();
+// --- Paid button ---
+paidBtn.addEventListener('click',async()=>{
+  if(!paymentMethod.value){ alert('Select a payment method'); return; }
+  const tableOrder=tables[payingTableID];
+  if(payingSubID){
+    const sub = tableOrder.subOrders.find(s=>s.personID===payingSubID);
+    if(sub) sub.paid=true; // mark as paid
+  } else tableOrder.subOrders.forEach(sub=>sub.paid=true);
+  await setDoc(tablesDocRef,{tables});
   payOverlay.style.display='none';
-  payTarget=null; selectedPaymentMethod=null;
   renderTables();
-});
-
-payCancelBtn.addEventListener('click', ()=>{
-  payOverlay.style.display='none';
-  payTarget=null; selectedPaymentMethod=null;
 });
 </script>
 </body>
