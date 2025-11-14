@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Waiter POS — Full</title>
+<title>Waiter POS — TRUE MERGE (Merged Order)</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
-  :root{--primary:#0062ca;--green:#28a745;--muted:#e9ecef}
-  body{font-family:Segoe UI, Tahoma, Geneva, Verdana, sans-serif;background:#f4f4f4;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
-  .order-box{background:var(--primary);padding:20px;border-radius:12px;color:#fff;width:360px;box-shadow:0 8px 24px rgba(0,0,0,.15)}
-  .order-box h2{margin:0 0 12px;font-size:18px;text-align:center}
-  input,select{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:none;font-size:15px;outline:none}
+  :root{--primary:#0062ca;--green:#28a745;--muted:#f4f4f4}
+  body{font-family:Segoe UI, Tahoma, Geneva, Verdana, sans-serif;background:var(--muted);padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .order-box{background:var(--primary);padding:18px;border-radius:12px;color:#fff;width:380px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .order-box h2{margin:0 0 10px;font-size:18px;text-align:center}
+  input,select{width:100%;padding:9px;margin:6px 0;border-radius:8px;border:none;font-size:15px;outline:none}
   .add-btn{background:var(--green);color:#fff;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;border:none}
   .tables-container{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;width:100%}
-  .table-box{background:#fff;padding:12px;border-radius:12px;width:320px;box-shadow:0 8px 20px rgba(0,0,0,.12);max-height:560px;overflow:auto}
+  .table-box{background:#fff;padding:12px;border-radius:12px;width:340px;box-shadow:0 8px 20px rgba(0,0,0,.12);max-height:640px;overflow:auto}
   .table-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
   .table-total{font-weight:700}
   .person-box{background:#f0f0f0;padding:8px;border-radius:10px;margin-bottom:8px}
-  .person-actions{display:flex;gap:6px;margin-top:6px}
+  .person-actions{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
   .item-box{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;margin:6px 0;background:#fff}
   .pending{background:#fff7e6}
   .served{background:#e9f7ee}
@@ -29,6 +29,7 @@
   .move-select{padding:6px;border-radius:6px}
   .low-stock{color:#d9534f;font-weight:700;font-size:13px}
   .note{font-size:13px;color:#666;margin-top:6px}
+  .controls-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
   @media(max-width:760px){ .order-box,.table-box{width:92%} .tables-container{flex-direction:column;align-items:center} }
 </style>
 </head>
@@ -59,7 +60,7 @@
     <div id="stockNote" style="margin-left:8px"></div>
   </div>
 
-  <div class="note">Inventory live: stock decrements when waiter adds items. Low stock flagged.</div>
+  <div class="note">Inventory updates on add. Canceling items restores stock. Merge produces one real sub-order named "Merged Order".</div>
 </div>
 
 <div id="tablesContainer" class="tables-container"></div>
@@ -97,7 +98,7 @@ const tablesContainer = document.getElementById('tablesContainer');
 const stockNote = document.getElementById('stockNote');
 
 /* -------------------------
-   Menu data (same as you had)
+   Menu data
    ------------------------- */
 const menuItems = {
   food: [
@@ -127,16 +128,50 @@ const menuItems = {
 /* -------------------------
    Local state
    ------------------------- */
-let tables = {};            // main tables object (persisted to Firestore under posData/tables)
-let mergedHistory = {};     // keep merged state per table id (for split)
-let stock = {};             // itemName -> quantity (persisted under posData/stock)
+let tables = {};          // persisted under posData/tables
+let mergedHistory = {};   // backup for true-split: mergedHistory[tableID] = [...originalSubOrders]
+let stock = {};           // persisted under posData/stock (itemName -> qty)
 
 /* -------------------------
-   Helpers: Firestore refs & save/load
+   Firestore refs
    ------------------------- */
 const tablesDocRef = doc(db,'posData','tables');
 const stockDocRef = doc(db,'posData','stock');
 
+/* -------------------------
+   Initialize docs if missing
+   ------------------------- */
+(async function initIfEmpty(){
+  const tSnap = await getDoc(tablesDocRef);
+  if(!tSnap.exists()) await setDoc(tablesDocRef, { tables: {} });
+  const sSnap = await getDoc(stockDocRef);
+  if(!sSnap.exists()){
+    // create default stock 20 for each menu item
+    for(const k of ['food','drink']){
+      menuItems[k].forEach(m => { stock[m.item] = 20; });
+    }
+    await setDoc(stockDocRef, { stock });
+  }
+})();
+
+/* -------------------------
+   Subscribe to stock and tables (real-time)
+   ------------------------- */
+onSnapshot(stockDocRef, snap=>{
+  const data = snap.data();
+  if(data && data.stock) stock = data.stock;
+  renderStockNote();
+});
+
+onSnapshot(tablesDocRef, snap=>{
+  const data = snap.data();
+  tables = (data && data.tables) ? data.tables : {};
+  renderTables();
+});
+
+/* -------------------------
+   Helpers: save
+   ------------------------- */
 async function saveTablesToFirebase(){
   // cleanup empty subOrders
   for(const key in tables){
@@ -149,34 +184,6 @@ async function saveTablesToFirebase(){
 async function saveStockToFirebase(){
   await setDoc(stockDocRef, { stock });
 }
-
-/* -------------------------
-   Load stock once (and subscribe)
-   ------------------------- */
-onSnapshot(stockDocRef, (snap)=>{
-  const data = snap.data();
-  if(data && data.stock) stock = data.stock;
-  else {
-    // initial default stock (if doc empty) - give reasonable numbers
-    stock = {};
-    for(const t of ['food','drink']){
-      menuItems[t].forEach(m => { if(!(m.item in stock)) stock[m.item] = 20; });
-    }
-    saveStockToFirebase();
-  }
-  renderStockNote();
-});
-
-/* -------------------------
-   Subscribe to tables (real-time)
-   ------------------------- */
-onSnapshot(tablesDocRef, (snap)=>{
-  const data = snap.data();
-  if(data && data.tables) {
-    tables = data.tables;
-  } else { tables = {}; }
-  renderTables();
-});
 
 /* -------------------------
    Populate table select (1..13)
@@ -200,7 +207,7 @@ typeSelect.addEventListener('change', ()=>{
 });
 
 /* -------------------------
-   Show price options if mult
+   Show price options if multiple
    ------------------------- */
 itemSelect.addEventListener('change', ()=>{
   const arr = menuItems[typeSelect.value] || [];
@@ -219,7 +226,6 @@ itemSelect.addEventListener('change', ()=>{
    Inventory helper UI
    ------------------------- */
 function renderStockNote(){
-  // show any low-stock items (<=3)
   const lows = Object.entries(stock).filter(([,q])=>q<=3).slice(0,4);
   if(lows.length){
     stockNote.innerHTML = `<span class="low-stock">Low: ${lows.map(([i])=>i).join(', ')}</span>`;
@@ -227,10 +233,7 @@ function renderStockNote(){
 }
 
 /* -------------------------
-   Add item (main action)
-   - checks stock
-   - creates table/subOrder if needed
-   - decrements stock and saves both tables + stock
+   Add item - decrements stock, adds to (table->subOrder)
    ------------------------- */
 addItemBtn.addEventListener('click', async ()=>{
   const tableNum = tableSelect.value;
@@ -274,24 +277,24 @@ addItemBtn.addEventListener('click', async ()=>{
 
   // decrement stock and save both
   if(stock[itemName] !== undefined && stock[itemName] !== Infinity){
-    stock[itemName] = Math.max(0, stock[itemName] - qty);
+    stock[itemName] = Math.max(0, (stock[itemName] || 0) - qty);
   }
   await saveStockToFirebase();
   await saveTablesToFirebase();
-  // reset minor inputs
+
   quantityInput.value = 1;
   descriptionInput.value = '';
   renderTables();
 });
 
 /* -------------------------
-   Render tables UI
+   Render tables UI (main)
    ------------------------- */
 function renderTables(){
   tablesContainer.innerHTML = '';
   Object.values(tables).filter(t=>t.tableStatus==='opened').sort((a,b)=>b.time.localeCompare(a.time)).forEach(tableOrder=>{
     const box = document.createElement('div'); box.className='table-box';
-    const total = tableOrder.subOrders.reduce((s,sub)=>s+ (sub.totalPrice||0), 0);
+    const total = (tableOrder.subOrders||[]).reduce((s,sub)=>s + (sub.totalPrice||0), 0);
     box.innerHTML = `
       <div class="table-head">
         <div><strong>Table ${tableOrder.table}</strong></div>
@@ -299,37 +302,73 @@ function renderTables(){
       </div>
     `;
 
-    // whole-table move control
-    const wholeMoveDiv = document.createElement('div');
-    wholeMoveDiv.style.marginBottom='8px';
-    const moveSelect = document.createElement('select');
-    moveSelect.className='move-select';
+    // whole-table move controls
+    const wholeControls = document.createElement('div'); wholeControls.className='controls-row';
+    const moveSelect = document.createElement('select'); moveSelect.className='move-select';
     moveSelect.innerHTML = `<option value="" disabled selected>Move table</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
-    wholeMoveDiv.appendChild(moveSelect);
+    wholeControls.appendChild(moveSelect);
     const moveBtn = document.createElement('button'); moveBtn.className='small'; moveBtn.textContent='Move';
-    moveBtn.style.marginLeft='6px';
-    wholeMoveDiv.appendChild(moveBtn);
     moveBtn.addEventListener('click', async ()=>{
       const newTable = moveSelect.value;
       if(!newTable){ alert('Choose a table to move to'); return; }
-      // if same table chosen, ignore
       if(String(newTable) === String(tableOrder.table)){ alert('Already on that table'); return; }
-      // move entire table
       tableOrder.table = newTable;
+      // if mergedHistory existed for old id, move it too under new id
+      const oldID = tableOrder.id;
       await saveTablesToFirebase();
+      // we must update mergedHistory key if exists
+      if(mergedHistory[oldID]){
+        mergedHistory['TABLE-'+Date.now()] = mergedHistory[oldID];
+        delete mergedHistory[oldID];
+      }
       renderTables();
     });
-    box.appendChild(wholeMoveDiv);
+    wholeControls.appendChild(moveBtn);
 
-    // each sub-order
-    tableOrder.subOrders.forEach((sub, subIndex) => {
+    // Merge button (table-level) - show only if more than one sub-order and not already merged
+    if((tableOrder.subOrders || []).length > 1 && !mergedHistory[tableOrder.id]){
+      const mergeBtn = document.createElement('button'); mergeBtn.className='merge-btn small'; mergeBtn.textContent='Merge';
+      mergeBtn.addEventListener('click', async ()=>{
+        // backup original subOrders
+        mergedHistory[tableOrder.id] = JSON.parse(JSON.stringify(tableOrder.subOrders));
+        // create ONE merged sub-order (TRUE MERGE)
+        const mergedItems = [];
+        tableOrder.subOrders.forEach(s => mergedItems.push(...s.items));
+        const mergedSub = {
+          personID: 'PERSON-'+Date.now(),
+          description: 'Merged Order',
+          items: mergedItems,
+          totalPrice: mergedItems.reduce((s,i)=>s + i.price*i.quantity,0)
+        };
+        tableOrder.subOrders = [mergedSub];
+        await saveTablesToFirebase();
+        renderTables();
+      });
+      wholeControls.appendChild(mergeBtn);
+    }
+
+    // Split button (table-level) - show only if table has a mergedHistory backup
+    if(mergedHistory[tableOrder.id]){
+      const splitBtn = document.createElement('button'); splitBtn.className='split-btn small'; splitBtn.textContent='Split';
+      splitBtn.addEventListener('click', async ()=>{
+        // restore exact previous sub-orders
+        tableOrder.subOrders = JSON.parse(JSON.stringify(mergedHistory[tableOrder.id]));
+        delete mergedHistory[tableOrder.id];
+        await saveTablesToFirebase();
+        renderTables();
+      });
+      wholeControls.appendChild(splitBtn);
+    }
+
+    box.appendChild(wholeControls);
+
+    // render sub-orders (if merged, tableOrder.subOrders will be single merged sub)
+    (tableOrder.subOrders || []).forEach((sub, subIndex) => {
       const p = document.createElement('div'); p.className='person-box';
-      p.innerHTML = `<div><strong>${sub.description}</strong></div><div style="font-size:13px">Total: ${sub.totalPrice||0} mts</div>`;
+      p.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${sub.description}</strong></div><div>${sub.totalPrice||0} mts</div></div>`;
 
-      // sub-order controls row
+      // controls for this sub-order: move it to another table
       const controls = document.createElement('div'); controls.className='person-actions';
-
-      // Move sub-order select + btn
       const moveS = document.createElement('select'); moveS.className='move-select';
       moveS.innerHTML = `<option value="" disabled selected>Move sub-order</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
       controls.appendChild(moveS);
@@ -338,11 +377,10 @@ function renderTables(){
         const newTable = moveS.value;
         if(!newTable){ alert('Choose a table to move to'); return; }
         if(String(newTable) === String(tableOrder.table)){ alert('Already on that table'); return; }
-        // Remove sub from current table and create/move to target table
-        const moved = JSON.parse(JSON.stringify(sub)); // deep copy
-        // remove the sub from current table
+        // deep copy sub
+        const moved = JSON.parse(JSON.stringify(sub));
+        // remove sub from current table
         tableOrder.subOrders.splice(subIndex,1);
-        // if current table becomes empty, delete
         if(!tableOrder.subOrders.length) delete tables[tableOrder.id];
 
         // find or create target table
@@ -352,52 +390,22 @@ function renderTables(){
           tables[targetID] = { id: targetID, table: newTable, tableStatus:'opened', time: new Date().toISOString(), subOrders: [] };
         }
         tables[targetID].subOrders.push(moved);
-        // also remove any mergedHistory referencing old table (safe)
+
+        // if we moved from a merged table and mergedHistory exists, remove mergedHistory for that old table ID (no longer valid)
         if(mergedHistory[tableOrder.id]) delete mergedHistory[tableOrder.id];
+
         await saveTablesToFirebase();
         renderTables();
       });
       controls.appendChild(moveSBtn);
-
-      // Merge button (only show if more than 1 sub-order present)
-      if(tableOrder.subOrders.length > 1){
-        const mergeBtn = document.createElement('button'); mergeBtn.className='merge-btn small'; mergeBtn.textContent='Merge';
-        mergeBtn.addEventListener('click', async ()=>{
-          // store full copy for split
-          mergedHistory[tableOrder.id] = JSON.parse(JSON.stringify(tableOrder.subOrders));
-          const first = tableOrder.subOrders[0];
-          for(let i=1;i<tableOrder.subOrders.length;i++){
-            first.items = first.items.concat(tableOrder.subOrders[i].items);
-            first.description = first.description + ' + ' + tableOrder.subOrders[i].description;
-            first.totalPrice = first.items.reduce((s,it)=>s + it.price*it.quantity, 0);
-          }
-          tableOrder.subOrders = [first];
-          await saveTablesToFirebase();
-          renderTables();
-        });
-        controls.appendChild(mergeBtn);
-      }
-
-      // Split button (only show when mergedHistory exists for this table)
-      if(mergedHistory[tableOrder.id]){
-        const splitBtn = document.createElement('button'); splitBtn.className='split-btn small'; splitBtn.textContent='Split';
-        splitBtn.addEventListener('click', async ()=>{
-          tableOrder.subOrders = JSON.parse(JSON.stringify(mergedHistory[tableOrder.id]));
-          delete mergedHistory[tableOrder.id];
-          await saveTablesToFirebase();
-          renderTables();
-        });
-        controls.appendChild(splitBtn);
-      }
-
       p.appendChild(controls);
 
-      // items list
+      // items inside sub-order
       sub.items.forEach((it, itIndex) => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'item-box ' + (it.status === 'pending' ? 'pending' : 'served');
         itemDiv.innerHTML = `
-          <div style="min-width:140px">
+          <div style="min-width:150px">
             <div><strong>${it.item} x${it.quantity}</strong></div>
             <div style="font-size:13px;color:#555">[${it.status}]</div>
           </div>
@@ -445,13 +453,12 @@ function renderTables(){
     });
 
     // close table button (only if all served)
-    const closeBtn = document.createElement('button'); closeBtn.className='close-btn'; closeBtn.textContent='Close Table';
+    const closeBtn = document.createElement('button'); closeBtn.className='small'; closeBtn.textContent='Close Table';
     closeBtn.addEventListener('click', async ()=>{
       if(tableOrder.subOrders.some(s => s.items.some(it => it.status === 'pending'))){
         alert('All items must be served before closing'); return;
       }
       tableOrder.tableStatus = 'closed';
-      // cleanup mergedHistory if any
       if(mergedHistory[tableOrder.id]) delete mergedHistory[tableOrder.id];
       await saveTablesToFirebase();
       renderTables();
@@ -465,21 +472,11 @@ function renderTables(){
 }
 
 /* -------------------------
-   Initialization: ensure docs exist
+   helpers: save stock
    ------------------------- */
-(async function initIfEmpty(){
-  // ensure tables doc exists
-  const tSnap = await getDoc(tablesDocRef);
-  if(!tSnap.exists()) await setDoc(tablesDocRef, { tables: {} });
-  const sSnap = await getDoc(stockDocRef);
-  if(!sSnap.exists()){
-    // create default stock 20 for each menu item
-    for(const k of ['food','drink']){
-      menuItems[k].forEach(m => { stock[m.item] = 20; });
-    }
-    await saveStockToFirebase();
-  }
-})();
+async function saveStockToFirebase(){
+  await setDoc(stockDocRef, { stock });
+}
 
 </script>
 </body>
