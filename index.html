@@ -1,278 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Waiter POS — Efficient</title>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple POS</title>
 <style>
-:root{--primary:#0062ca;--green:#28a745;--muted:#f4f4f4}
-body{font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background:var(--muted);padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
-.order-box{background:var(--primary);padding:18px;border-radius:12px;color:#fff;width:380px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
-.order-box h2{margin:0 0 10px;font-size:18px;text-align:center}
-input,select{width:100%;padding:9px;margin:6px 0;border-radius:8px;border:none;font-size:15px;outline:none}
-.add-btn{background:var(--green);color:#fff;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;border:none}
-.tables-container{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;width:100%}
-.table-box{background:#fff;padding:12px;border-radius:12px;width:340px;box-shadow:0 8px 20px rgba(0,0,0,.12);max-height:640px;overflow:auto}
-.table-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.table-total{font-weight:700}
-.person-box{background:#f0f0f0;padding:8px;border-radius:10px;margin-bottom:8px}
-.person-actions{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
-.item-box{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;margin:6px 0;background:#fff}
-.pending{background:#fff7e6}
-.served{background:#e9f7ee}
-.paid{background:#d4edda}
-button.small{padding:6px 8px;border-radius:8px;border:none;cursor:pointer}
-.served-btn{background:var(--green);color:#fff}
-.cancel-btn{background:#dc3545;color:#fff}
-.merge-btn{background:#007bff;color:#fff}
-.split-btn{background:#ffc107;color:#222}
-.move-select{padding:6px;border-radius:6px}
-.controls-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
-.modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center}
-.modal{background:#fff;padding:20px;border-radius:12px;width:320px;max-height:80%;overflow:auto;display:flex;flex-direction:column;gap:12px}
-.modal h3{margin:0;text-align:center}
-.modal button{cursor:pointer}
-@media(max-width:760px){.order-box,.table-box{width:92%}.tables-container{flex-direction:column;align-items:center}}
+body{font-family:sans-serif;background:#f4f4f4;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.order-box{background:#0062ca;padding:18px;border-radius:12px;color:#fff;width:360px}
+.order-box h2{text-align:center;margin:0 0 10px}
+input,select,button{width:100%;padding:8px;margin:5px 0;border-radius:6px;border:none;font-size:14px;outline:none}
+button{cursor:pointer;background:#28a745;color:#fff;font-weight:bold}
+.tables-container{width:360px}
+.table-box{background:#fff;padding:12px;border-radius:10px;margin-top:10px}
+.item-box{display:flex;justify-content:space-between;margin:4px 0;padding:6px;background:#eee;border-radius:6px}
+.table-total{font-weight:bold;margin-top:6px;text-align:right}
 </style>
 </head>
 <body>
 
 <div class="order-box">
-<h2><i class="fas fa-utensils"></i> Waiter POS</h2>
+<h2>Simple POS</h2>
+
 <label>Table</label>
 <select id="tableSelect"><option value="" disabled selected>Select table</option></select>
-<label>Description</label>
-<input id="description" placeholder="e.g. John / Veggie" />
-<label>Type</label>
-<select id="typeSelect"><option value="" disabled selected>Select type</option><option value="food">Food</option><option value="drink">Drink</option></select>
+
 <label>Item</label>
-<select id="itemSelect"><option value="" disabled selected>Select item</option></select>
-<select id="priceSelect" style="display:none"></select>
-<label>Quantity</label>
-<input id="quantity" type="number" min="1" value="1" />
-<div style="display:flex;gap:8px;align-items:center">
-<button id="addItemBtn" class="add-btn"><i class="fas fa-plus"></i> Add Item</button>
-</div>
-<div class="note">Merge produces one sub-order "Merged Order".</div>
-</div>
-
-<div id="tablesContainer" class="tables-container"></div>
-
-<!-- Payment Modal -->
-<div id="paymentModal" class="modal-bg">
-<div class="modal">
-<h3>Payment</h3>
-<div id="paymentContent"></div>
-<label>Method</label>
-<select id="paymentMethod">
-<option value="" disabled selected>Select method</option>
-<option value="cash">Cash</option>
-<option value="card">Card</option>
-<option value="mobile">Mobile</option>
+<select id="itemSelect">
+<option value="" disabled selected>Select item</option>
+<option value="Pizza" data-price="500">Pizza - 500 mts</option>
+<option value="Pasta" data-price="300">Pasta - 300 mts</option>
+<option value="Burger" data-price="200">Burger - 200 mts</option>
+<option value="Soda" data-price="50">Soda - 50 mts</option>
+<option value="Juice" data-price="80">Juice - 80 mts</option>
+<option value="Water" data-price="30">Water - 30 mts</option>
 </select>
-<button id="payBtn" style="background:var(--green);color:#fff">Paid</button>
-<button id="closeModalBtn">Close</button>
+
+<label>Quantity</label>
+<input id="quantity" type="number" min="1" value="1">
+
+<button id="addItemBtn">Add Item</button>
 </div>
-</div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<div class="tables-container" id="tablesContainer"></div>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC6VdctOXcT-qHaLJs1gEzwzVv5AdK5e0w",
-  authDomain: "pos-system-9a056.firebaseapp.com",
-  projectId: "pos-system-9a056",
-  storageBucket: "pos-system-9a056.appspot.com",
-  messagingSenderId: "701001104012",
-  appId: "1:701001104012:web:294967faec11a627c819a9"
-};
+<script>
+const tableSelect = document.getElementById('tableSelect');
+const itemSelect = document.getElementById('itemSelect');
+const quantityInput = document.getElementById('quantity');
+const addItemBtn = document.getElementById('addItemBtn');
+const tablesContainer = document.getElementById('tablesContainer');
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const tableSelect=document.getElementById('tableSelect');
-const typeSelect=document.getElementById('typeSelect');
-const itemSelect=document.getElementById('itemSelect');
-const priceSelect=document.getElementById('priceSelect');
-const quantityInput=document.getElementById('quantity');
-const descriptionInput=document.getElementById('description');
-const addItemBtn=document.getElementById('addItemBtn');
-const tablesContainer=document.getElementById('tablesContainer');
-
-const paymentModal=document.getElementById('paymentModal');
-const paymentContent=document.getElementById('paymentContent');
-const paymentMethod=document.getElementById('paymentMethod');
-const payBtn=document.getElementById('payBtn');
-const closeModalBtn=document.getElementById('closeModalBtn');
-
-const menuItems={
-  food:[{item:'Pizza',price:[500]},{item:'Pasta',price:[300]},{item:'Burger',price:[200]}],
-  drink:[{item:'Soda',price:[50]},{item:'Juice',price:[80]},{item:'Water',price:[30]}]
-};
-
-let tables={};
-const tablesDocRef=doc(db,'posData','tables');
-
+// Initialize tables 1-13
+const tables = {};
 for(let i=1;i<=13;i++){
-  const opt=document.createElement('option'); opt.value=i; opt.textContent=i;
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = i;
   tableSelect.appendChild(opt);
 }
 
-typeSelect.addEventListener('change',()=>{
-  itemSelect.innerHTML='<option value="" disabled selected>Select item</option>';
-  (menuItems[typeSelect.value]||[]).forEach(m=>{
-    const opt=document.createElement('option'); opt.value=m.item; opt.textContent=m.item;
-    itemSelect.appendChild(opt);
-  });
-  priceSelect.style.display='none';
-});
+// Add item to table
+addItemBtn.addEventListener('click', ()=>{
+  const tableNum = tableSelect.value;
+  const itemName = itemSelect.value;
+  const price = parseInt(itemSelect.selectedOptions[0].dataset.price);
+  const qty = parseInt(quantityInput.value)||1;
 
-itemSelect.addEventListener('change',()=>{
-  const menuItem=(menuItems[typeSelect.value]||[]).find(m=>m.item===itemSelect.value);
-  if(menuItem && menuItem.price.length>1){
-    priceSelect.innerHTML='<option value="" disabled selected>Select price</option>';
-    menuItem.price.forEach(p=>{
-      const opt=document.createElement('option'); opt.value=p; opt.textContent=p+' mts';
-      priceSelect.appendChild(opt);
-    });
-    priceSelect.style.display='block';
-  }else priceSelect.style.display='none';
-});
+  if(!tableNum || !itemName){ alert('Select table and item'); return; }
 
-async function saveTables(){ await setDoc(tablesDocRef,{tables}); }
+  if(!tables[tableNum]) tables[tableNum] = [];
 
-onSnapshot(tablesDocRef,snap=>{ tables=(snap.data()?.tables)||{}; renderTables(); });
-
-addItemBtn.addEventListener('click',async()=>{
-  const tableNum=tableSelect.value;
-  const type=typeSelect.value;
-  const itemName=itemSelect.value;
-  const price=priceSelect.style.display==='block'?parseInt(priceSelect.value):(menuItems[type]||[]).find(m=>m.item===itemName)?.price[0];
-  const qty=parseInt(quantityInput.value)||1;
-  const desc=(descriptionInput.value||'Order').trim();
-
-  if(!tableNum||!type||!itemName||!price||qty<1){alert('Select Table, Type, Item and Quantity'); return;}
-
-  let tableID=Object.keys(tables).find(id=>tables[id].table==tableNum&&tables[id].tableStatus==='opened');
-  if(!tableID){ tableID='TABLE-'+Date.now(); tables[tableID]={id:tableID,table:tableNum,tableStatus:'opened',time:new Date().toISOString(),subOrders:[]}; }
-
-  const tableOrder=tables[tableID];
-  let sub=tableOrder.subOrders.find(s=>s.description===desc);
-  if(!sub){ sub={personID:'PERSON-'+Date.now(),description:desc,items:[],totalPrice:0}; tableOrder.subOrders.push(sub); }
-
-  const newItem={id:'ITEM-'+Date.now(),item:itemName,price,quantity:qty,status:'pending',paid:false,time:new Date().toISOString()};
-  sub.items.push(newItem);
-  sub.totalPrice=sub.items.reduce((s,i)=>s+s.price*i.quantity,0);
-
-  await saveTables();
-  quantityInput.value=1; descriptionInput.value='';
+  tables[tableNum].push({item:itemName, price, qty});
   renderTables();
 });
 
-// ------------------ FIX: define renderTableControls ------------------
-function renderTableControls(containerEl, tableOrder){
-  const controls = document.createElement('div'); controls.className='controls-row';
-
-  // Merge button
-  const mergeBtn = document.createElement('button'); 
-  mergeBtn.className='merge-btn small'; 
-  mergeBtn.textContent='Merge';
-  mergeBtn.onclick = async ()=>{
-    const subs = tableOrder.subOrders || [];
-    if(subs.length <= 1){ alert('Nothing to merge'); return; }
-    const merged = { personID:'PERSON-MERGED-'+Date.now(), description:'Merged Order', items:[], totalPrice:0, mergedFrom:true };
-    subs.forEach(s=> (s.items||[]).forEach(it=> merged.items.push(Object.assign({}, it))));
-    merged.totalPrice = merged.items.reduce((s,i)=>s + (Number(i.price)||0)*(Number(i.quantity)||1), 0);
-    tableOrder.subOrders = [merged];
-    tableOrder.time = new Date().toISOString();
-    await saveTables();
-  };
-  controls.appendChild(mergeBtn);
-
-  // New person/suborder button
-  const newBtn = document.createElement('button'); 
-  newBtn.className='add-btn small'; 
-  newBtn.textContent='New person';
-  newBtn.onclick = async ()=>{
-    const desc = prompt('Enter person/description','New');
-    if(!desc) return;
-    tableOrder.subOrders = tableOrder.subOrders || [];
-    tableOrder.subOrders.push({ personID:'PERSON-'+Date.now(), description:desc, items:[], totalPrice:0 });
-    tableOrder.time = new Date().toISOString();
-    await saveTables();
-  };
-  controls.appendChild(newBtn);
-
-  containerEl.appendChild(controls);
-}
-
-// ------------------ render sub-orders ------------------
-function renderSubOrder(containerEl, tableOrder, subOrder, subIndex){
-  const box = document.createElement('div'); box.className='person-box';
-  subOrder.items.forEach(item=>{
-    const itemBox=document.createElement('div'); itemBox.className='item-box '+item.status;
-    itemBox.innerHTML=`<div>${item.item} x${item.quantity}</div><div>${item.price*item.quantity} mts</div>`;
-    box.appendChild(itemBox);
-  });
-
-  // Person actions
-  const actions=document.createElement('div'); actions.className='person-actions';
-
-  const payBtn=document.createElement('button'); payBtn.className='served-btn small'; payBtn.textContent='Pay';
-  payBtn.onclick=()=>showPayment(tableOrder, subOrder);
-  actions.appendChild(payBtn);
-
-  box.appendChild(actions);
-  containerEl.appendChild(box);
-}
-
-// ------------------ render tables ------------------
+// Render all tables
 function renderTables(){
   tablesContainer.innerHTML='';
-  Object.values(tables).filter(t=>t.tableStatus==='opened')
-    .sort((a,b)=>b.time.localeCompare(a.time))
-    .forEach(tableOrder=>{
-      const box=document.createElement('div'); box.className='table-box';
-
-      // recalc totals
-      tableOrder.subOrders.forEach(sub=>sub.totalPrice=sub.items.reduce((sum,it)=>sum+it.price*it.quantity,0));
-      const tableTotal=tableOrder.subOrders.reduce((s,sub)=>s+sub.totalPrice,0);
-
-      box.innerHTML=`<div class="table-head"><div><strong>Table ${tableOrder.table}</strong></div><div class="table-total">${tableTotal} mts</div></div>`;
-
-      renderTableControls(box, tableOrder); // ✅ Fixed ReferenceError
-
-      tableOrder.subOrders.forEach((sub,subIndex)=>renderSubOrder(box,tableOrder,sub,subIndex));
-      tablesContainer.appendChild(box);
+  for(const [tableNum, items] of Object.entries(tables)){
+    const box = document.createElement('div'); box.className='table-box';
+    let total = 0;
+    items.forEach(i=>{
+      const div = document.createElement('div'); div.className='item-box';
+      div.textContent = `${i.item} x${i.qty} - ${i.price*i.qty} mts`;
+      box.appendChild(div);
+      total += i.price*i.qty;
     });
-}
-
-// ------------------ Payment modal ------------------
-function showPayment(tableOrder,subOrder){
-  paymentModal.style.display='flex';
-  paymentContent.innerHTML='';
-  let html='';
-  if(subOrder) html+=`<div><strong>${subOrder.description}</strong> - ${subOrder.totalPrice} mts</div>`;
-  else tableOrder.subOrders.forEach(s=>html+=`<div><strong>${s.description}</strong> - ${s.totalPrice} mts</div>`);
-  paymentContent.innerHTML=html;
-
-  payBtn.onclick=async()=>{
-    const method=paymentMethod.value;
-    if(!method){ alert('Select payment method'); return; }
-
-    if(subOrder) subOrder.items.forEach(it=>{ it.paid=true; it.status='served'; });
-    else tableOrder.subOrders.forEach(s=>s.items.forEach(it=>{ it.paid=true; it.status='served'; }));
-
-    if(tableOrder.subOrders.every(s=>s.items.every(it=>it.paid))) delete tables[tableOrder.id];
-
-    await saveTables();
-    paymentModal.style.display='none';
-    renderTables();
-  };
-
-  closeModalBtn.onclick=()=>{ paymentModal.style.display='none'; };
+    const totalDiv = document.createElement('div'); totalDiv.className='table-total';
+    totalDiv.textContent = `Total: ${total} mts`;
+    box.appendChild(totalDiv);
+    tablesContainer.appendChild(box);
+  }
 }
 </script>
 </body>
