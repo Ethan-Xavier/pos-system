@@ -1,231 +1,281 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ultra POS</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Waiter POS — Efficient</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
-:root{--primary:#0062ca;--green:#28a745;--muted:#f4f4f4;}
-body{font-family:Segoe UI,sans-serif;background:var(--muted);margin:0;padding:20px;display:flex;flex-direction:column;align-items:center;gap:20px;}
-.header{font-size:24px;font-weight:700;margin-bottom:12px;}
-.controls, .tables-container{width:100%;max-width:1200px;display:flex;flex-wrap:wrap;gap:20px;justify-content:center;}
-.order-box, .table-box{background:#fff;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);width:300px;}
-.order-box h2{margin-top:0;text-align:center;color:var(--primary);}
-.order-box select,input,button{width:100%;margin:6px 0;padding:8px;border-radius:8px;border:none;font-size:14px;outline:none;}
-button.add-btn{background:var(--green);color:#fff;font-weight:700;cursor:pointer;}
-.table-box h3{margin-top:0;color:var(--primary);}
-.person-box{background:#f0f0f0;padding:8px;border-radius:8px;margin-bottom:8px;}
-.item-box{display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:6px;margin:4px 0;background:#fff;}
-.item-box.pending{background:#fff7e6;}
-.item-box.served{background:#e9f7ee;}
-.item-box.paid{background:#d4edda;}
-.person-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
-button.small{padding:4px 6px;border-radius:6px;border:none;cursor:pointer;}
-.payment-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:flex;justify-content:center;align-items:center;z-index:100;display:none;}
-.payment-box{background:#fff;padding:20px;border-radius:12px;width:350px;max-height:80%;overflow:auto;}
+:root{--primary:#0062ca;--green:#28a745;--muted:#f4f4f4}
+body{font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background:var(--muted);padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.order-box{background:var(--primary);padding:18px;border-radius:12px;color:#fff;width:380px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.order-box h2{margin:0 0 10px;font-size:18px;text-align:center}
+input,select{width:100%;padding:9px;margin:6px 0;border-radius:8px;border:none;font-size:15px;outline:none}
+.add-btn{background:var(--green);color:#fff;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;border:none}
+.tables-container{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;width:100%}
+.table-box{background:#fff;padding:12px;border-radius:12px;width:340px;box-shadow:0 8px 20px rgba(0,0,0,.12);max-height:640px;overflow:auto}
+.table-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.table-total{font-weight:700}
+.person-box{background:#f0f0f0;padding:8px;border-radius:10px;margin-bottom:8px}
+.person-actions{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.item-box{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;margin:6px 0;background:#fff}
+.pending{background:#fff7e6}
+.served{background:#e9f7ee}
+.paid{background:#d4edda}
+button.small{padding:6px 8px;border-radius:8px;border:none;cursor:pointer}
+.served-btn{background:var(--green);color:#fff}
+.cancel-btn{background:#dc3545;color:#fff}
+.merge-btn{background:#007bff;color:#fff}
+.split-btn{background:#ffc107;color:#222}
+.move-select{padding:6px;border-radius:6px}
+.controls-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center}
+.modal{background:#fff;padding:20px;border-radius:12px;width:320px;max-height:80%;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.modal h3{margin:0;text-align:center}
+.modal button{cursor:pointer}
+@media(max-width:760px){.order-box,.table-box{width:92%}.tables-container{flex-direction:column;align-items:center}}
 </style>
 </head>
 <body>
 
-<div class="header">Ultra POS System</div>
-
 <div class="order-box">
-<h2><i class="fas fa-utensils"></i> New Order</h2>
-
+<h2><i class="fas fa-utensils"></i> Waiter POS</h2>
 <label>Table</label>
-<select id="tableSelect"><option value="" disabled selected>Select Table</option></select>
-
-<label>Sub-Order Description</label>
+<select id="tableSelect"><option value="" disabled selected>Select table</option></select>
+<label>Description</label>
 <input id="description" placeholder="e.g. John / Veggie" />
-
 <label>Type</label>
-<select id="typeSelect"><option value="" disabled selected>Select Type</option><option value="food">Food</option><option value="drink">Drink</option></select>
-
+<select id="typeSelect"><option value="" disabled selected>Select type</option><option value="food">Food</option><option value="drink">Drink</option></select>
 <label>Item</label>
-<select id="itemSelect"><option value="" disabled selected>Select Item</option></select>
-
+<select id="itemSelect"><option value="" disabled selected>Select item</option></select>
+<select id="priceSelect" style="display:none"></select>
 <label>Quantity</label>
 <input id="quantity" type="number" min="1" value="1" />
-
+<div style="display:flex;gap:8px;align-items:center">
 <button id="addItemBtn" class="add-btn"><i class="fas fa-plus"></i> Add Item</button>
+</div>
+<div class="note">Merge produces one sub-order "Merged Order".</div>
 </div>
 
 <div id="tablesContainer" class="tables-container"></div>
 
-<!-- Payment Overlay -->
-<div id="paymentOverlay" class="payment-overlay">
-<div class="payment-box">
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal-bg">
+<div class="modal">
 <h3>Payment</h3>
 <div id="paymentContent"></div>
-<label>Payment Method</label>
+<label>Method</label>
 <select id="paymentMethod">
-<option value="" disabled selected>Select Method</option>
+<option value="" disabled selected>Select method</option>
 <option value="cash">Cash</option>
 <option value="card">Card</option>
 <option value="mobile">Mobile</option>
 </select>
-<button id="paidBtn" class="add-btn" style="margin-top:10px;">Paid</button>
-<button id="closePayment" class="add-btn" style="background:#dc3545;margin-top:10px;">Close</button>
+<button id="payBtn" style="background:var(--green);color:#fff">Paid</button>
+<button id="closeModalBtn">Close</button>
 </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyC6VdctOXcT-qHaLJs1gEzwzVv5AdK5e0w",
-  authDomain: "pos-system-9a056.firebaseapp.com",
-  projectId: "pos-system-9a056",
-  storageBucket: "pos-system-9a056.firebasestorage.app",
-  messagingSenderId: "701001104012",
-  appId: "1:701001104012:web:294967faec11a627c819a9"
+apiKey: "AIzaSyC6VdctOXcT-qHaLJs1gEzwzVv5AdK5e0w",
+authDomain: "pos-system-9a056.firebaseapp.com",
+projectId: "pos-system-9a056",
+storageBucket: "pos-system-9a056.appspot.com",
+messagingSenderId: "701001104012",
+appId: "1:701001104012:web:294967faec11a627c819a9"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// UI Elements
-const tableSelect = document.getElementById('tableSelect');
-const typeSelect = document.getElementById('typeSelect');
-const itemSelect = document.getElementById('itemSelect');
-const quantityInput = document.getElementById('quantity');
-const descriptionInput = document.getElementById('description');
-const addItemBtn = document.getElementById('addItemBtn');
-const tablesContainer = document.getElementById('tablesContainer');
-const paymentOverlay = document.getElementById('paymentOverlay');
-const paymentContent = document.getElementById('paymentContent');
-const paymentMethod = document.getElementById('paymentMethod');
-const paidBtn = document.getElementById('paidBtn');
-const closePayment = document.getElementById('closePayment');
+const tableSelect=document.getElementById('tableSelect');
+const typeSelect=document.getElementById('typeSelect');
+const itemSelect=document.getElementById('itemSelect');
+const priceSelect=document.getElementById('priceSelect');
+const quantityInput=document.getElementById('quantity');
+const descriptionInput=document.getElementById('description');
+const addItemBtn=document.getElementById('addItemBtn');
+const tablesContainer=document.getElementById('tablesContainer');
 
-// Menu
-const menuItems = {
-food: [{item:'Pizza',price:500},{item:'Burger',price:200},{item:'Salad',price:150}],
-drink: [{item:'Soda',price:50},{item:'Juice',price:80},{item:'Beer',price:100}]
+const paymentModal=document.getElementById('paymentModal');
+const paymentContent=document.getElementById('paymentContent');
+const paymentMethod=document.getElementById('paymentMethod');
+const payBtn=document.getElementById('payBtn');
+const closeModalBtn=document.getElementById('closeModalBtn');
+
+const menuItems={
+food:[{item:'Pizza',price:[500]},{item:'Pasta',price:[300]},{item:'Burger',price:[200]}],
+drink:[{item:'Soda',price:[50]},{item:'Juice',price:[80]},{item:'Water',price:[30]}]
 };
 
-// Local state
-let tables = {};
-let mergedHistory = {};
-let currentPayment = null;
+let tables={};
+let mergedHistory={};
 
-// Firestore reference
-const tablesDocRef = doc(db,'posData','tables');
+const tablesDocRef=doc(db,'posData','tables');
 
-// Init table options
 for(let i=1;i<=13;i++){
-  const opt=document.createElement('option');
-  opt.value=i; opt.textContent=i;
-  tableSelect.appendChild(opt);
+const opt=document.createElement('option'); opt.value=i; opt.textContent=i;
+tableSelect.appendChild(opt);
 }
 
-// Type -> item
 typeSelect.addEventListener('change',()=>{
-  itemSelect.innerHTML='<option value="" disabled selected>Select Item</option>';
-  (menuItems[typeSelect.value]||[]).forEach(m=>{
-    const opt=document.createElement('option'); opt.value=m.item; opt.textContent=m.item;
-    itemSelect.appendChild(opt);
-  });
+itemSelect.innerHTML='<option value="" disabled selected>Select item</option>';
+(menuItems[typeSelect.value]||[]).forEach(m=>{
+const opt=document.createElement('option'); opt.value=m.item; opt.textContent=m.item;
+itemSelect.appendChild(opt);
+});
+priceSelect.style.display='none';
 });
 
-// Firestore subscription
-onSnapshot(tablesDocRef,snap=>{
-  tables = snap.data()?.tables || {};
-  renderTables();
+itemSelect.addEventListener('change',()=>{
+const arr=menuItems[typeSelect.value]||[];
+const menuItem=arr.find(m=>m.item===itemSelect.value);
+if(menuItem && menuItem.price.length>1){
+priceSelect.innerHTML='<option value="" disabled selected>Select price</option>';
+menuItem.price.forEach(p=>{
+const opt=document.createElement('option'); opt.value=p; opt.textContent=p+' mts';
+priceSelect.appendChild(opt);
+});
+priceSelect.style.display='block';
+}else priceSelect.style.display='none';
 });
 
-// Save
 async function saveTables(){ await setDoc(tablesDocRef,{tables}); }
 
-// Add item
+onSnapshot(tablesDocRef,snap=>{ tables=(snap.data()?.tables)||{}; renderTables(); });
+
 addItemBtn.addEventListener('click',async()=>{
-  const tableNum = tableSelect.value;
-  const type = typeSelect.value;
-  const itemName = itemSelect.value;
-  const qty = parseInt(quantityInput.value)||1;
-  const desc = (descriptionInput.value||'Person').trim();
-  if(!tableNum||!type||!itemName||qty<1){alert('Complete all fields');return;}
-
-  let tableID = Object.keys(tables).find(id=>tables[id].table==tableNum&&tables[id].status!=='closed');
-  if(!tableID){
-    tableID='TABLE-'+Date.now();
-    tables[tableID]={id:tableID,table:tableNum,status:'opened',subOrders:[]};
-  }
-  const tableOrder = tables[tableID];
-
-  let sub = tableOrder.subOrders.find(s=>s.description===desc);
-  if(!sub){ sub={id:'SUB-'+Date.now(),description:desc,items:[],total:0}; tableOrder.subOrders.push(sub); }
-
-  const price = menuItems[type].find(m=>m.item===itemName)?.price||0;
-  sub.items.push({id:'ITEM-'+Date.now(),item:itemName,price,qty,status:'pending'});
-  sub.total=sub.items.reduce((s,i)=>s+s.price*i.qty,0);
-
-  await saveTables();
-  quantityInput.value='1'; descriptionInput.value='';
+const tableNum=tableSelect.value;
+const type=typeSelect.value;
+const itemName=itemSelect.value;
+const price=priceSelect.style.display==='block'?parseInt(priceSelect.value):(menuItems[type]||[]).find(m=>m.item===itemName)?.price[0];
+const qty=parseInt(quantityInput.value)||1;
+const desc=(descriptionInput.value||'Person').trim();
+if(!tableNum||!type||!itemName||!price||qty<1){alert('Select Table, Type, Item and Quantity'); return;}
+let tableID=Object.keys(tables).find(id=>tables[id].table==tableNum&&tables[id].tableStatus==='opened');
+if(!tableID){tableID='TABLE-'+Date.now(); tables[tableID]={id:tableID,table:tableNum,tableStatus:'opened',time:new Date().toISOString(),subOrders:[]};}
+const tableOrder=tables[tableID];
+let sub=tableOrder.subOrders.find(s=>s.description===desc);
+if(!sub){sub={personID:'PERSON-'+Date.now(),description:desc,items:[],totalPrice:0}; tableOrder.subOrders.push(sub);}
+const newItem={id:'ITEM-'+Date.now(),item:itemName,price,quantity:qty,status:'pending',paid:false,time:new Date().toISOString()};
+sub.items.push(newItem);
+sub.totalPrice=sub.items.reduce((s,i)=>s+s.price*i.quantity,0);
+await saveTables();
+quantityInput.value=1; descriptionInput.value='';
+renderTables();
 });
 
-// Render tables
 function renderTables(){
-  tablesContainer.innerHTML='';
-  Object.values(tables).forEach(table=>{
-    if(table.status==='closed') return;
-    const box=document.createElement('div'); box.className='table-box';
-    const title=document.createElement('h3'); title.textContent='Table '+table.table; box.appendChild(title);
+tablesContainer.innerHTML='';
+Object.values(tables).filter(t=>t.tableStatus==='opened').sort((a,b)=>b.time.localeCompare(a.time)).forEach(tableOrder=>{
+const box=document.createElement('div'); box.className='table-box';
+const total=(tableOrder.subOrders||[]).reduce((s,sub)=>s+(sub.totalPrice||0),0);
+box.innerHTML=`<div class="table-head"><div><strong>Table ${tableOrder.table}</strong></div><div class="table-total">${total} mts</div></div>`;
+const wholeControls=document.createElement('div'); wholeControls.className='controls-row';
+const moveSelect=document.createElement('select'); moveSelect.className='move-select';
+moveSelect.innerHTML=`<option value="" disabled selected>Move table</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
+wholeControls.appendChild(moveSelect);
+const moveBtn=document.createElement('button'); moveBtn.className='small'; moveBtn.textContent='Move';
+moveBtn.addEventListener('click',async()=>{
+const newTable=moveSelect.value; if(!newTable){alert('Choose a table'); return;}
+if(String(newTable)===String(tableOrder.table)){alert('Already on that table'); return;}
+tableOrder.table=newTable; await saveTables(); renderTables();
+}); wholeControls.appendChild(moveBtn);
 
-    table.subOrders.forEach(sub=>{
-      const pbox=document.createElement('div'); pbox.className='person-box';
-      const pname=document.createElement('strong'); pname.textContent=sub.description; pbox.appendChild(pname);
-      sub.items.forEach(item=>{
-        const ibox=document.createElement('div'); ibox.className='item-box '+item.status;
-        ibox.textContent=item.item+' x'+item.qty+' - '+item.price*item.qty+' mts';
-        const serveBtn=document.createElement('button'); serveBtn.className='small'; serveBtn.textContent='Serve';
-        serveBtn.onclick=async()=>{ item.status='served'; await saveTables(); renderTables(); };
-        const cancelBtn=document.createElement('button'); cancelBtn.className='small'; cancelBtn.textContent='Cancel';
-        cancelBtn.onclick=async()=>{ sub.items=sub.items.filter(x=>x.id!==item.id); sub.total=sub.items.reduce((s,i)=>s+s.price*i.qty,0); await saveTables(); renderTables(); };
-        ibox.appendChild(serveBtn); ibox.appendChild(cancelBtn);
-        pbox.appendChild(ibox);
-      });
-      const payBtn=document.createElement('button'); payBtn.className='add-btn'; payBtn.textContent='Pay'; payBtn.onclick=()=>openPayment(table.id,sub.id);
-      pbox.appendChild(payBtn);
-      box.appendChild(pbox);
-    });
-
-    const payTableBtn=document.createElement('button'); payTableBtn.className='add-btn'; payTableBtn.textContent='Pay Table';
-    payTableBtn.onclick=()=>openPayment(table.id,null);
-    box.appendChild(payTableBtn);
-    tablesContainer.appendChild(box);
-  });
+// Merge/split
+if((tableOrder.subOrders||[]).length>1&&!mergedHistory[tableOrder.id]){
+const mergeBtn=document.createElement('button'); mergeBtn.className='merge-btn small'; mergeBtn.textContent='Merge';
+mergeBtn.addEventListener('click',async()=>{
+mergedHistory[tableOrder.id]=JSON.parse(JSON.stringify(tableOrder.subOrders));
+const mergedItems=[]; tableOrder.subOrders.forEach(s=>mergedItems.push(...s.items));
+tableOrder.subOrders=[{personID:'PERSON-'+Date.now(),description:'Merged Order',items:mergedItems,totalPrice:mergedItems.reduce((s,i)=>s+s.price*i.quantity,0)}];
+await saveTables(); renderTables();
+}); wholeControls.appendChild(mergeBtn);
+}
+if(mergedHistory[tableOrder.id]){
+const splitBtn=document.createElement('button'); splitBtn.className='split-btn small'; splitBtn.textContent='Split';
+splitBtn.addEventListener('click',async()=>{
+tableOrder.subOrders=JSON.parse(JSON.stringify(mergedHistory[tableOrder.id]));
+delete mergedHistory[tableOrder.id]; await saveTables(); renderTables();
+}); wholeControls.appendChild(splitBtn);
 }
 
-// Payment
-function openPayment(tableID,subID){
-  currentPayment={tableID,subID};
-  paymentOverlay.style.display='flex';
-  paymentContent.innerHTML='';
-  const t=tables[tableID];
-  if(subID){
-    const sub=t.subOrders.find(s=>s.id===subID);
-    sub.items.forEach(it=>{ const d=document.createElement('div'); d.textContent=it.item+' x'+it.qty+' - '+it.price*it.qty+' mts'; paymentContent.appendChild(d); });
-  }else{
-    t.subOrders.forEach(sub=>sub.items.forEach(it=>{ const d=document.createElement('div'); d.textContent=it.item+' x'+it.qty+' - '+it.price*it.qty+' mts'; paymentContent.appendChild(d); }));
-  }
+const payTableBtn=document.createElement('button'); payTableBtn.className='small'; payTableBtn.textContent='Pay Table';
+payTableBtn.addEventListener('click',()=>{ showPayment(tableOrder); });
+wholeControls.appendChild(payTableBtn);
+box.appendChild(wholeControls);
+
+(tableOrder.subOrders||[]).forEach((sub,subIndex)=>{
+const p=document.createElement('div'); p.className='person-box';
+p.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${sub.description}</strong></div><div>${sub.totalPrice||0} mts</div></div>`;
+const controls=document.createElement('div'); controls.className='person-actions';
+const moveS=document.createElement('select'); moveS.className='move-select';
+moveS.innerHTML=`<option value="" disabled selected>Move sub-order</option>${[...Array(13)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}`;
+controls.appendChild(moveS);
+const moveSBtn=document.createElement('button'); moveSBtn.className='small'; moveSBtn.textContent='Move';
+moveSBtn.addEventListener('click',async()=>{
+const newTable=moveS.value;if(!newTable){alert('Choose table'); return;}
+if(String(newTable)===String(tableOrder.table)){alert('Already on that table'); return;}
+const moved=JSON.parse(JSON.stringify(sub));
+tableOrder.subOrders.splice(subIndex,1);
+if(!tableOrder.subOrders.length) delete tables[tableOrder.id];
+let targetID=Object.keys(tables).find(id=>tables[id].table==newTable&&tables[id].tableStatus==='opened');
+if(!targetID){targetID='TABLE-'+Date.now(); tables[targetID]={id:targetID,table:newTable,tableStatus:'opened',time:new Date().toISOString(),subOrders:[]};}
+tables[targetID].subOrders.push(moved);
+await saveTables(); renderTables();
+}); controls.appendChild(moveSBtn);
+const paySubBtn=document.createElement('button'); paySubBtn.className='small'; paySubBtn.textContent='Pay Sub-order';
+paySubBtn.addEventListener('click',()=>{ showPayment(tableOrder,sub); });
+controls.appendChild(paySubBtn);
+
+p.appendChild(controls);
+
+sub.items.forEach((it,itIndex)=>{
+const itemDiv=document.createElement('div'); itemDiv.className='item-box '+(it.paid?'paid':it.status==='pending'?'pending':'served');
+itemDiv.innerHTML=`<div style="min-width:150px"><div><strong>${it.item} x${it.quantity}</strong></div><div style="font-size:13px;color:#555">[${it.status}${it.paid?' / Paid':''}]</div></div><div style="text-align:right"><div style="font-weight:700">${it.price*it.quantity} mts</div><div style="margin-top:6px">${it.status==='pending'?'<button class="served-btn small">Served</button>':''}<button class="cancel-btn small">Cancel</button></div></div>`;
+if(it.status==='pending'){
+itemDiv.querySelector('.served-btn').addEventListener('click',async()=>{ it.status='served'; await saveTables(); renderTables(); });
+}
+itemDiv.querySelector('.cancel-btn').addEventListener('click',async()=>{
+sub.items.splice(itIndex,1);
+sub.totalPrice=sub.items.reduce((s,i)=>s+s.price*i.quantity,0);
+if(sub.items.length===0) tableOrder.subOrders.splice(subIndex,1);
+if(tableOrder.subOrders.length===0) delete tables[tableOrder.id];
+await saveTables(); renderTables();
+});
+p.appendChild(itemDiv);
+});
+box.appendChild(p);
+});
+
+tablesContainer.appendChild(box);
+});
 }
 
-paidBtn.onclick=async()=>{
-  const {tableID,subID}=currentPayment||{};
-  if(!tableID||!paymentMethod.value) return alert('Select payment method');
-  const t=tables[tableID];
-  if(subID){
-    const sub=t.subOrders.find(s=>s.id===subID); sub.items.forEach(i=>i.status='paid');
-  }else{
-    t.subOrders.forEach(sub=>sub.items.forEach(i=>i.status='paid'));
-    t.status='closed';
-  }
-  await saveTables(); renderTables(); paymentOverlay.style.display='none';
+function showPayment(tableOrder,subOrder){
+paymentModal.style.display='flex';
+paymentContent.innerHTML='';
+let html='';
+if(subOrder){
+html+=`<div><strong>${subOrder.description}</strong> - ${subOrder.totalPrice} mts</div>`;
+}else{
+(tableOrder.subOrders||[]).forEach(s=>{ html+=`<div><strong>${s.description}</strong> - ${s.totalPrice} mts</div>`; });
+}
+paymentContent.innerHTML=html;
+
+payBtn.onclick=async()=>{
+const method=paymentMethod.value;
+if(!method){ alert('Select payment method'); return;}
+if(subOrder){ subOrder.items.forEach(it=>it.paid=true); } else { tableOrder.subOrders.forEach(s=>s.items.forEach(it=>it.paid=true)); }
+await saveTables(); paymentModal.style.display='none'; renderTables();
 };
-closePayment.onclick=()=>paymentOverlay.style.display='none';
+
+closeModalBtn.onclick=()=>{ paymentModal.style.display='none'; };
+}
 
 </script>
 </body>
