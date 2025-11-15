@@ -113,7 +113,6 @@ const menuItems={
 };
 
 let tables={};
-let mergedHistory={};
 const tablesDocRef=doc(db,'posData','tables');
 
 for(let i=1;i<=13;i++){
@@ -172,6 +171,64 @@ addItemBtn.addEventListener('click',async()=>{
   renderTables();
 });
 
+// ------------------ FIX: define renderTableControls ------------------
+function renderTableControls(containerEl, tableOrder){
+  const controls = document.createElement('div'); controls.className='controls-row';
+
+  // Merge button
+  const mergeBtn = document.createElement('button'); 
+  mergeBtn.className='merge-btn small'; 
+  mergeBtn.textContent='Merge';
+  mergeBtn.onclick = async ()=>{
+    const subs = tableOrder.subOrders || [];
+    if(subs.length <= 1){ alert('Nothing to merge'); return; }
+    const merged = { personID:'PERSON-MERGED-'+Date.now(), description:'Merged Order', items:[], totalPrice:0, mergedFrom:true };
+    subs.forEach(s=> (s.items||[]).forEach(it=> merged.items.push(Object.assign({}, it))));
+    merged.totalPrice = merged.items.reduce((s,i)=>s + (Number(i.price)||0)*(Number(i.quantity)||1), 0);
+    tableOrder.subOrders = [merged];
+    tableOrder.time = new Date().toISOString();
+    await saveTables();
+  };
+  controls.appendChild(mergeBtn);
+
+  // New person/suborder button
+  const newBtn = document.createElement('button'); 
+  newBtn.className='add-btn small'; 
+  newBtn.textContent='New person';
+  newBtn.onclick = async ()=>{
+    const desc = prompt('Enter person/description','New');
+    if(!desc) return;
+    tableOrder.subOrders = tableOrder.subOrders || [];
+    tableOrder.subOrders.push({ personID:'PERSON-'+Date.now(), description:desc, items:[], totalPrice:0 });
+    tableOrder.time = new Date().toISOString();
+    await saveTables();
+  };
+  controls.appendChild(newBtn);
+
+  containerEl.appendChild(controls);
+}
+
+// ------------------ render sub-orders ------------------
+function renderSubOrder(containerEl, tableOrder, subOrder, subIndex){
+  const box = document.createElement('div'); box.className='person-box';
+  subOrder.items.forEach(item=>{
+    const itemBox=document.createElement('div'); itemBox.className='item-box '+item.status;
+    itemBox.innerHTML=`<div>${item.item} x${item.quantity}</div><div>${item.price*item.quantity} mts</div>`;
+    box.appendChild(itemBox);
+  });
+
+  // Person actions
+  const actions=document.createElement('div'); actions.className='person-actions';
+
+  const payBtn=document.createElement('button'); payBtn.className='served-btn small'; payBtn.textContent='Pay';
+  payBtn.onclick=()=>showPayment(tableOrder, subOrder);
+  actions.appendChild(payBtn);
+
+  box.appendChild(actions);
+  containerEl.appendChild(box);
+}
+
+// ------------------ render tables ------------------
 function renderTables(){
   tablesContainer.innerHTML='';
   Object.values(tables).filter(t=>t.tableStatus==='opened')
@@ -179,20 +236,20 @@ function renderTables(){
     .forEach(tableOrder=>{
       const box=document.createElement('div'); box.className='table-box';
 
-      // recalc sub-totals
+      // recalc totals
       tableOrder.subOrders.forEach(sub=>sub.totalPrice=sub.items.reduce((sum,it)=>sum+it.price*it.quantity,0));
       const tableTotal=tableOrder.subOrders.reduce((s,sub)=>s+sub.totalPrice,0);
 
       box.innerHTML=`<div class="table-head"><div><strong>Table ${tableOrder.table}</strong></div><div class="table-total">${tableTotal} mts</div></div>`;
-      renderTableControls(box,tableOrder);
+
+      renderTableControls(box, tableOrder); // ✅ Fixed ReferenceError
+
       tableOrder.subOrders.forEach((sub,subIndex)=>renderSubOrder(box,tableOrder,sub,subIndex));
       tablesContainer.appendChild(box);
     });
 }
 
-// Functions renderTableControls and renderSubOrder need to include merge, split, move, and pay logic
-// For brevity, keep them the same as in the previous full file but make sure pay logic sets items to served when paid and disables cancel
-
+// ------------------ Payment modal ------------------
 function showPayment(tableOrder,subOrder){
   paymentModal.style.display='flex';
   paymentContent.innerHTML='';
