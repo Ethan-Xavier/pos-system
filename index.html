@@ -280,9 +280,31 @@ function renderTables(){
         });
         table.people = [mergedPerson];
         table.tableTotal = mergedPerson.totalPrice;
+        table.merged = true;
         await savePOS();
       };
       controlsDiv.appendChild(mergeBillsBtn);
+    }
+
+    // Split merged bills
+    if(table.people.length === 1 && table.people[0].description==='Merged'){
+      const splitBillsBtn = document.createElement('button');
+      splitBillsBtn.textContent='Split Bills';
+      splitBillsBtn.onclick=async()=>{
+        const mergedPerson = table.people[0];
+        const originalPeople = mergedPerson.orders.map((o,i)=>({
+          id:'PERSON-'+Date.now()+'-'+i,
+          description:'Person '+(i+1),
+          orders:[o],
+          totalPrice:o.price*o.quantity,
+          payment:null
+        }));
+        table.people = originalPeople;
+        table.tableTotal = table.people.reduce((s,p)=>s+p.totalPrice,0);
+        table.merged=false;
+        await savePOS();
+      };
+      controlsDiv.appendChild(splitBillsBtn);
     }
 
     // Move table
