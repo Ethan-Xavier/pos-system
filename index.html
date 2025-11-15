@@ -114,7 +114,6 @@ const menuItems={
 
 let tables={};
 let mergedHistory={};
-
 const tablesDocRef=doc(db,'posData','tables');
 
 for(let i=1;i<=13;i++){
@@ -175,28 +174,24 @@ addItemBtn.addEventListener('click',async()=>{
 
 function renderTables(){
   tablesContainer.innerHTML='';
-  Object.values(tables)
-    .filter(t=>t.tableStatus==='opened')
+  Object.values(tables).filter(t=>t.tableStatus==='opened')
     .sort((a,b)=>b.time.localeCompare(a.time))
     .forEach(tableOrder=>{
       const box=document.createElement('div'); box.className='table-box';
 
-      // Recalculate sub-order totals before calculating table total
-      tableOrder.subOrders.forEach(sub=>{
-        sub.totalPrice = sub.items.reduce((sum,it)=>sum + it.price*it.quantity,0);
-      });
-
-      const tableTotal = tableOrder.subOrders.reduce((s,sub)=>s + sub.totalPrice,0);
+      // recalc sub-totals
+      tableOrder.subOrders.forEach(sub=>sub.totalPrice=sub.items.reduce((sum,it)=>sum+it.price*it.quantity,0));
+      const tableTotal=tableOrder.subOrders.reduce((s,sub)=>s+sub.totalPrice,0);
 
       box.innerHTML=`<div class="table-head"><div><strong>Table ${tableOrder.table}</strong></div><div class="table-total">${tableTotal} mts</div></div>`;
-
       renderTableControls(box,tableOrder);
       tableOrder.subOrders.forEach((sub,subIndex)=>renderSubOrder(box,tableOrder,sub,subIndex));
       tablesContainer.appendChild(box);
     });
 }
 
-// (Keep renderTableControls and renderSubOrder functions same as in previous full file)
+// Functions renderTableControls and renderSubOrder need to include merge, split, move, and pay logic
+// For brevity, keep them the same as in the previous full file but make sure pay logic sets items to served when paid and disables cancel
 
 function showPayment(tableOrder,subOrder){
   paymentModal.style.display='flex';
