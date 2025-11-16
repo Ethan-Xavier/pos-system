@@ -3,25 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simple Deli POS</title>
+<title>Deli POS</title>
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
-.order-inputs { display: flex; flex-direction: column; max-width: 400px; gap: 6px; margin-bottom: 20px; }
+body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
+.order-inputs { display: flex; flex-direction: column; max-width: 400px; gap: 6px; margin-bottom: 20px; background: #fff; padding: 10px; border-radius: 8px; }
 input, select, button { padding: 6px; font-size: 14px; }
 section { margin-bottom: 20px; }
 h2 { margin-bottom: 6px; }
-.order-box { background: #fff; padding: 8px; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-.order-info { display: flex; gap: 12px; }
+.order-box { background: #fff; padding: 8px; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.order-info { display: flex; flex-direction: column; gap: 2px; }
 .order-actions button { margin-left: 4px; }
-.problem-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
-.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
-.modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 300px; }
+.modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
+.modal-content { background:#fff; padding:20px; border-radius:8px; width:300px; }
 </style>
 </head>
 <body>
 
 <div class="order-inputs">
-  <input id="description" placeholder="Description (grouping)" />
+  <input id="description" placeholder="Description (group)" />
   <select id="typeSelect">
     <option value="" disabled selected>Select type</option>
     <option value="food">Food</option>
@@ -31,7 +30,6 @@ h2 { margin-bottom: 6px; }
     <option value="" disabled selected>Select item</option>
   </select>
   <input id="quantity" type="number" min="1" value="1" />
-  <input id="price" type="number" placeholder="Price" />
   <button id="makeOrderBtn">Make Order</button>
 </div>
 
@@ -55,7 +53,6 @@ h2 { margin-bottom: 6px; }
   <div id="problemOrdersDiv"></div>
 </section>
 
-<!-- Problem Modal -->
 <div id="problemModal" class="modal">
   <div class="modal-content">
     <h3>Select Problem</h3>
@@ -77,7 +74,6 @@ const itemSelect = document.getElementById('itemSelect');
 const makeOrderBtn = document.getElementById('makeOrderBtn');
 const descriptionInput = document.getElementById('description');
 const quantityInput = document.getElementById('quantity');
-const priceInput = document.getElementById('price');
 
 const placedOrdersDiv = document.getElementById('placedOrdersDiv');
 const servedOrdersDiv = document.getElementById('servedOrdersDiv');
@@ -90,11 +86,10 @@ const confirmProblemBtn = document.getElementById('confirmProblemBtn');
 const cancelProblemBtn = document.getElementById('cancelProblemBtn');
 
 const menuItems = {
-  food: ['Pizza', 'Pasta', 'Burger'],
-  drink: ['Soda', 'Juice', 'Water']
+  food: { Pizza: 500, Pasta: 350, Burger: 400 },
+  drink: { Soda: 50, Juice: 70, Water: 30 }
 };
 
-// Orders arrays
 let placedOrders = [];
 let servedOrders = [];
 let registeredOrders = [];
@@ -102,145 +97,103 @@ let problemOrders = [];
 
 let currentProblemOrder = null;
 
-// Populate item select when type changes
+// Populate items based on type
 typeSelect.addEventListener('change', () => {
   itemSelect.innerHTML = '<option value="" disabled selected>Select item</option>';
-  (menuItems[typeSelect.value] || []).forEach(item => {
+  const items = menuItems[typeSelect.value];
+  for (const item in items) {
     const opt = document.createElement('option');
     opt.value = item;
-    opt.textContent = item;
+    opt.textContent = `${item} - ${items[item]} mts`;
     itemSelect.appendChild(opt);
-  });
+  }
 });
 
+// Log arrays for testing
 function logArrays() {
   console.clear();
-  console.log('Placed:', placedOrders);
-  console.log('Served:', servedOrders);
-  console.log('Registered:', registeredOrders);
-  console.log('Problem:', problemOrders);
+  console.log('Placed Orders:', placedOrders);
+  console.log('Served Orders:', servedOrders);
+  console.log('Registered Orders:', registeredOrders);
+  console.log('Problem Orders:', problemOrders);
 }
 
-// Create a new order
+// Make order
 makeOrderBtn.addEventListener('click', () => {
   const description = descriptionInput.value.trim();
   const type = typeSelect.value;
   const item = itemSelect.value;
   const quantity = parseInt(quantityInput.value);
-  const price = parseFloat(priceInput.value);
 
-  if (!description || !type || !item || !quantity || !price) {
-    alert('Fill all fields');
-    return;
-  }
+  if(!description || !type || !item || !quantity) return alert('Fill all fields');
 
-  const order = { description, type, item, quantity, price, total: price * quantity };
+  const price = menuItems[type][item];
+  const order = { description, type, item, quantity, price, total: price*quantity };
+
   placedOrders.push(order);
   renderOrders();
   logArrays();
 
-  // Reset inputs
   descriptionInput.value = '';
   quantityInput.value = 1;
-  priceInput.value = '';
-  itemSelect.value = '';
   typeSelect.value = '';
+  itemSelect.value = '';
 });
 
-// Render orders in a given div
+// Render all orders
 function renderOrders() {
-  placedOrdersDiv.innerHTML = '';
-  servedOrdersDiv.innerHTML = '';
-  registeredOrdersDiv.innerHTML = '';
-  problemOrdersDiv.innerHTML = '';
+  const render = (arr, div, actions) => {
+    div.innerHTML = '';
+    arr.forEach((order, idx) => {
+      const box = document.createElement('div');
+      box.className = 'order-box';
+      box.innerHTML = `
+        <div class="order-info">${order.description} - ${order.item} x${order.quantity} - ${order.total} mts</div>
+        <div class="order-actions">${actions(idx, order)}</div>
+      `;
+      div.appendChild(box);
+    });
+  };
 
-  placedOrders.forEach((order, idx) => {
-    const div = document.createElement('div'); div.className = 'order-box';
-    div.innerHTML = `<div class="order-info">${order.description} - ${order.item} x${order.quantity} - ${order.total} mts</div>
-                     <div class="order-actions">
-                       <button onclick="cancelOrder(${idx}, 'placed')">Cancel</button>
-                       <button onclick="serveOrder(${idx})">Serve</button>
-                       <button onclick="problemOrder(${idx}, 'placed')">Problem</button>
-                     </div>`;
-    placedOrdersDiv.appendChild(div);
-  });
+  render(placedOrders, placedOrdersDiv, idx => `
+    <button onclick="cancelOrder(${idx}, 'placed')">Cancel</button>
+    <button onclick="serveOrder(${idx})">Serve</button>
+    <button onclick="problemOrder(${idx}, 'placed')">Problem</button>
+  `);
 
-  servedOrders.forEach((order, idx) => {
-    const div = document.createElement('div'); div.className = 'order-box';
-    div.innerHTML = `<div class="order-info">${order.description} - ${order.item} x${order.quantity} - ${order.total} mts</div>
-                     <div class="order-actions">
-                       <button onclick="payOrder(${idx})">Pay</button>
-                       <button onclick="problemOrder(${idx}, 'served')">Problem</button>
-                     </div>`;
-    servedOrdersDiv.appendChild(div);
-  });
+  render(servedOrders, servedOrdersDiv, idx => `
+    <button onclick="payOrder(${idx})">Pay</button>
+    <button onclick="problemOrder(${idx}, 'served')">Problem</button>
+  `);
 
-  registeredOrders.forEach(order => {
-    const div = document.createElement('div'); div.className = 'order-box';
-    div.textContent = `${order.description} - ${order.item} x${order.quantity} - ${order.total} mts`;
-    registeredOrdersDiv.appendChild(div);
-  });
-
-  problemOrders.forEach(order => {
-    const div = document.createElement('div'); div.className = 'order-box';
-    div.textContent = `${order.description} - ${order.item} x${order.quantity} - Original: ${order.total} mts - Problem: ${order.problemDesc}`;
-    problemOrdersDiv.appendChild(div);
-  });
+  render(registeredOrders, registeredOrdersDiv, () => '');
+  render(problemOrders, problemOrdersDiv, () => '');
 }
 
-// Cancel order
-function cancelOrder(idx, arrayName) {
-  if(arrayName==='placed') placedOrders.splice(idx,1);
-  renderOrders();
-  logArrays();
-}
-
-// Serve order
-function serveOrder(idx) {
-  const order = placedOrders.splice(idx,1)[0];
-  servedOrders.push(order);
-  renderOrders();
-  logArrays();
-}
-
-// Pay order
-function payOrder(idx) {
-  const order = servedOrders.splice(idx,1)[0];
-  registeredOrders.push(order);
-  renderOrders();
-  logArrays();
-}
-
-// Problem order
-function problemOrder(idx, arrayName) {
-  currentProblemOrder = { idx, arrayName };
-  problemModal.style.display = 'flex';
-}
+// Actions
+function cancelOrder(idx, arrayName) { if(arrayName==='placed') placedOrders.splice(idx,1); renderOrders(); logArrays(); }
+function serveOrder(idx) { const order=placedOrders.splice(idx,1)[0]; servedOrders.push(order); renderOrders(); logArrays(); }
+function payOrder(idx) { const order=servedOrders.splice(idx,1)[0]; registeredOrders.push(order); renderOrders(); logArrays(); }
+function problemOrder(idx, arrayName) { currentProblemOrder={idx,arrayName}; problemModal.style.display='flex'; }
 
 confirmProblemBtn.addEventListener('click', () => {
-  if (!problemSelect.value) return alert('Select a problem');
-  const { idx, arrayName } = currentProblemOrder;
+  if(!problemSelect.value) return alert('Select a problem');
+  const {idx,arrayName} = currentProblemOrder;
   let order;
   if(arrayName==='placed') order = placedOrders.splice(idx,1)[0];
   if(arrayName==='served') order = servedOrders.splice(idx,1)[0];
   order.problemDesc = problemSelect.value;
   problemOrders.push(order);
-  // Add to registeredOrders with price = 0
-  const zeroPriceOrder = { ...order, total: 0 };
+  const zeroPriceOrder = {...order, total:0};
   registeredOrders.push(zeroPriceOrder);
-
-  problemModal.style.display = 'none';
+  problemModal.style.display='none';
   renderOrders();
   logArrays();
-  problemSelect.value = '';
+  problemSelect.value='';
 });
 
-cancelProblemBtn.addEventListener('click', () => {
-  problemModal.style.display = 'none';
-  problemSelect.value = '';
-});
+cancelProblemBtn.addEventListener('click', () => { problemModal.style.display='none'; problemSelect.value=''; });
 </script>
 
 </body>
 </html>
-
