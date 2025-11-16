@@ -13,7 +13,8 @@ input,select{width:100%;padding:9px;margin:6px 0;border-radius:8px;border:none;f
 .add-btn{background:#28a745;color:#fff;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;border:none;width:100%}
 .orders-container{width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;margin-top:20px}
 .order-item{background:#fff;padding:10px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 12px rgba(0,0,0,.1)}
-button.small{padding:5px 8px;border-radius:6px;border:none;cursor:pointer;background:#dc3545;color:#fff}
+button.small{padding:5px 8px;border-radius:6px;border:none;cursor:pointer;background:#dc3545;color:#fff;margin-left:6px}
+button.served-btn{background:#28a745;color:#fff}
 </style>
 </head>
 <body>
@@ -48,6 +49,7 @@ const addItemBtn = document.getElementById('addItemBtn');
 const ordersContainer = document.getElementById('ordersContainer');
 
 let orders = [];
+let closedTables = []; // orders that have been served
 
 typeSelect.addEventListener('change',()=>{
   itemSelect.innerHTML='<option value="" disabled selected>Select item</option>';
@@ -60,7 +62,16 @@ typeSelect.addEventListener('change',()=>{
 
 function logOrders(){
   console.clear();
+  console.log('Open Orders:');
   console.table(orders.map(o=>({
+    type: o.type,
+    item: o.item,
+    quantity: o.quantity,
+    total: o.price*o.quantity,
+    time: o.time
+  })));
+  console.log('Served Orders:');
+  console.table(closedTables.map(o=>({
     type: o.type,
     item: o.item,
     quantity: o.quantity,
@@ -75,12 +86,23 @@ function renderOrders(){
     const div=document.createElement('div');
     div.className='order-item';
     div.innerHTML=`<div>${o.type}: ${o.item} x${o.quantity} - ${o.price*o.quantity} mts</div>
-                   <button class="small">Cancel</button>`;
-    div.querySelector('button').onclick=()=>{
+                   <div>
+                     <button class="small">Cancel</button>
+                     <button class="served-btn">Served</button>
+                   </div>`;
+    
+    div.querySelector('.small').onclick=()=>{
       orders.splice(index,1);
       renderOrders();
       logOrders();
     };
+    div.querySelector('.served-btn').onclick=()=>{
+      const servedOrder = orders.splice(index,1)[0];
+      closedTables.push(servedOrder);
+      renderOrders();
+      logOrders();
+    };
+
     ordersContainer.appendChild(div);
   });
 }
