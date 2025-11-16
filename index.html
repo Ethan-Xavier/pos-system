@@ -198,7 +198,19 @@ function renderGroup(container, ordersArray, status){
         renderAll();
       };
       const problemBtn = document.createElement('button'); problemBtn.className='problem-btn'; problemBtn.textContent='Problem';
-      problemBtn.onclick = ()=>openProblemModal(desc);
+      problemBtn.onclick = ()=>{
+        // Move to paidOrders with price 0
+        paidOrders.push(...group.map(o=>({
+          item: o.item,
+          quantity: o.quantity,
+          price: 0,
+          time: o.time,
+          description: o.description
+        })));
+        ordersArray.splice(ordersArray.indexOf(group[0]), group.length);
+        renderAll();
+        openProblemModal(desc);
+      };
       btnDiv.append(cancelBtn, servedBtn, problemBtn);
     } else if(status==='served'){
       const payBtn = document.createElement('button'); payBtn.className='pay-btn'; payBtn.textContent='Pay';
@@ -209,7 +221,18 @@ function renderGroup(container, ordersArray, status){
         renderAll();
       };
       const problemBtn = document.createElement('button'); problemBtn.className='problem-btn'; problemBtn.textContent='Problem';
-      problemBtn.onclick = ()=>openProblemModal(desc);
+      problemBtn.onclick = ()=>{
+        paidOrders.push(...group.map(o=>({
+          item: o.item,
+          quantity: o.quantity,
+          price: 0,
+          time: o.time,
+          description: o.description
+        })));
+        ordersArray.splice(ordersArray.indexOf(group[0]), group.length);
+        renderAll();
+        openProblemModal(desc);
+      };
       btnDiv.append(payBtn, problemBtn);
     }
     div.appendChild(btnDiv);
@@ -235,7 +258,6 @@ function renderAll(){
   renderGroup(servedContainer, servedOrders,'served');
   renderGroup(paidContainer, paidOrders,'paid');
 }
-
 </script>
 </body>
 </html>
