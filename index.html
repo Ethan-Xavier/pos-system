@@ -3,24 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deli POS</title>
+<title>Simple Deli POS</title>
 <style>
 body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
-.order-inputs { display: flex; flex-direction: column; max-width: 400px; gap: 6px; margin-bottom: 20px; background: #fff; padding: 10px; border-radius: 8px; }
+.order-inputs { display: flex; flex-direction: column; max-width: 400px; gap: 6px; margin-bottom: 20px; }
 input, select, button { padding: 6px; font-size: 14px; }
 section { margin-bottom: 20px; }
 h2 { margin-bottom: 6px; }
-.order-box { background: #fff; padding: 8px; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.order-info { display: flex; flex-direction: column; gap: 2px; }
+.order-box { background: #fff; padding: 8px; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.order-info { display: flex; gap: 12px; }
 .order-actions button { margin-left: 4px; }
-.modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
-.modal-content { background:#fff; padding:20px; border-radius:8px; width:300px; }
+.modal, .paymentModal { position: fixed; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; background: rgba(0,0,0,0.5); display:none; }
+.modal-content, .paymentContent { background:#fff; padding:20px; border-radius:8px; width: 300px; }
 </style>
 </head>
 <body>
 
 <div class="order-inputs">
-  <input id="description" placeholder="Description (group)" />
+  <input id="description" placeholder="Description (grouping)" />
   <select id="typeSelect">
     <option value="" disabled selected>Select type</option>
     <option value="food">Food</option>
@@ -53,6 +53,7 @@ h2 { margin-bottom: 6px; }
   <div id="problemOrdersDiv"></div>
 </section>
 
+<!-- Problem Modal -->
 <div id="problemModal" class="modal">
   <div class="modal-content">
     <h3>Select Problem</h3>
@@ -65,6 +66,16 @@ h2 { margin-bottom: 6px; }
     </select>
     <button id="confirmProblemBtn">Confirm</button>
     <button id="cancelProblemBtn">Cancel</button>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="paymentModal">
+  <div class="paymentContent">
+    <h3>Payment</h3>
+    <div id="paymentInfo"></div>
+    <button id="confirmPaymentBtn">Confirm Payment</button>
+    <button id="cancelPaymentBtn">Cancel</button>
   </div>
 </div>
 
@@ -85,98 +96,130 @@ const problemSelect = document.getElementById('problemSelect');
 const confirmProblemBtn = document.getElementById('confirmProblemBtn');
 const cancelProblemBtn = document.getElementById('cancelProblemBtn');
 
+const paymentModal = document.getElementById('paymentModal');
+const paymentInfo = document.getElementById('paymentInfo');
+const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+const cancelPaymentBtn = document.getElementById('cancelPaymentBtn');
+
 const menuItems = {
-  food: { Pizza: 500, Pasta: 350, Burger: 400 },
-  drink: { Soda: 50, Juice: 70, Water: 30 }
+  food: [{name:'Pizza', price:100},{name:'Burger', price:70},{name:'Pasta', price:90}],
+  drink: [{name:'Soda', price:20},{name:'Juice', price:30},{name:'Water', price:10}]
 };
 
-let placedOrders = [];
-let servedOrders = [];
-let registeredOrders = [];
-let problemOrders = [];
-
+let placedOrders = [], servedOrders = [], registeredOrders = [], problemOrders = [];
 let currentProblemOrder = null;
+let currentPaymentOrder = null;
 
-// Populate items based on type
-typeSelect.addEventListener('change', () => {
+typeSelect.addEventListener('change', ()=>{
   itemSelect.innerHTML = '<option value="" disabled selected>Select item</option>';
-  const items = menuItems[typeSelect.value];
-  for (const item in items) {
+  (menuItems[typeSelect.value] || []).forEach(item=>{
     const opt = document.createElement('option');
-    opt.value = item;
-    opt.textContent = `${item} - ${items[item]} mts`;
+    opt.value = item.name;
+    opt.textContent = `${item.name} (${item.price} mts)`;
+    opt.dataset.price = item.price;
     itemSelect.appendChild(opt);
-  }
+  });
 });
 
-// Log arrays for testing
-function logArrays() {
+function logArrays(){
   console.clear();
-  console.log('Placed Orders:', placedOrders);
-  console.log('Served Orders:', servedOrders);
-  console.log('Registered Orders:', registeredOrders);
-  console.log('Problem Orders:', problemOrders);
+  console.log('Placed:', placedOrders);
+  console.log('Served:', servedOrders);
+  console.log('Registered:', registeredOrders);
+  console.log('Problem:', problemOrders);
 }
 
-// Make order
-makeOrderBtn.addEventListener('click', () => {
+makeOrderBtn.addEventListener('click', ()=>{
   const description = descriptionInput.value.trim();
   const type = typeSelect.value;
-  const item = itemSelect.value;
+  const itemName = itemSelect.value;
   const quantity = parseInt(quantityInput.value);
+  const price = parseFloat(itemSelect.selectedOptions[0]?.dataset.price);
 
-  if(!description || !type || !item || !quantity) return alert('Fill all fields');
+  if(!description || !type || !itemName || !quantity || !price){
+    alert('Fill all fields'); return;
+  }
 
-  const price = menuItems[type][item];
-  const order = { description, type, item, quantity, price, total: price*quantity };
-
+  const order = { description, type, item: itemName, quantity, price, total: price*quantity };
   placedOrders.push(order);
   renderOrders();
   logArrays();
 
-  descriptionInput.value = '';
-  quantityInput.value = 1;
-  typeSelect.value = '';
-  itemSelect.value = '';
+  descriptionInput.value=''; quantityInput.value=1; itemSelect.value=''; typeSelect.value='';
 });
 
-// Render all orders
-function renderOrders() {
-  const render = (arr, div, actions) => {
-    div.innerHTML = '';
-    arr.forEach((order, idx) => {
-      const box = document.createElement('div');
-      box.className = 'order-box';
-      box.innerHTML = `
-        <div class="order-info">${order.description} - ${order.item} x${order.quantity} - ${order.total} mts</div>
-        <div class="order-actions">${actions(idx, order)}</div>
-      `;
-      div.appendChild(box);
-    });
-  };
+function renderOrders(){
+  placedOrdersDiv.innerHTML='';
+  servedOrdersDiv.innerHTML='';
+  registeredOrdersDiv.innerHTML='';
+  problemOrdersDiv.innerHTML='';
 
-  render(placedOrders, placedOrdersDiv, idx => `
-    <button onclick="cancelOrder(${idx}, 'placed')">Cancel</button>
-    <button onclick="serveOrder(${idx})">Serve</button>
-    <button onclick="problemOrder(${idx}, 'placed')">Problem</button>
-  `);
+  placedOrders.forEach((order, idx)=>{
+    const div = document.createElement('div'); div.className='order-box';
+    div.innerHTML=`<div class="order-info">${order.description} - ${order.item} x${order.quantity} - ${order.total} mts</div>
+      <div class="order-actions">
+        <button onclick="cancelOrder(${idx},'placed')">Cancel</button>
+        <button onclick="serveOrder(${idx})">Serve</button>
+        <button onclick="problemOrder(${idx},'placed')">Problem</button>
+      </div>`;
+    placedOrdersDiv.appendChild(div);
+  });
 
-  render(servedOrders, servedOrdersDiv, idx => `
-    <button onclick="payOrder(${idx})">Pay</button>
-    <button onclick="problemOrder(${idx}, 'served')">Problem</button>
-  `);
+  servedOrders.forEach((order, idx)=>{
+    const div = document.createElement('div'); div.className='order-box';
+    div.innerHTML=`<div class="order-info">${order.description} - ${order.item} x${order.quantity} - ${order.total} mts</div>
+      <div class="order-actions">
+        <button onclick="payOrder(${idx})">Pay</button>
+        <button onclick="problemOrder(${idx},'served')">Problem</button>
+      </div>`;
+    servedOrdersDiv.appendChild(div);
+  });
 
-  render(registeredOrders, registeredOrdersDiv, () => '');
-  render(problemOrders, problemOrdersDiv, () => '');
+  registeredOrders.forEach(order=>{
+    const div = document.createElement('div'); div.className='order-box';
+    div.textContent=`${order.description} - ${order.item} x${order.quantity} - ${order.total} mts`;
+    registeredOrdersDiv.appendChild(div);
+  });
+
+  problemOrders.forEach(order=>{
+    const div = document.createElement('div'); div.className='order-box';
+    div.textContent=`${order.description} - ${order.item} x${order.quantity} - Original: ${order.total} mts - Problem: ${order.problemDesc}`;
+    problemOrdersDiv.appendChild(div);
+  });
 }
 
-// Actions
-function cancelOrder(idx, arrayName) { if(arrayName==='placed') placedOrders.splice(idx,1); renderOrders(); logArrays(); }
-function serveOrder(idx) { const order=placedOrders.splice(idx,1)[0]; servedOrders.push(order); renderOrders(); logArrays(); }
-function payOrder(idx) { const order=servedOrders.splice(idx,1)[0]; registeredOrders.push(order); renderOrders(); logArrays(); }
-function problemOrder(idx, arrayName) { currentProblemOrder={idx,arrayName}; problemModal.style.display='flex'; }
+function cancelOrder(idx,arrayName){
+  if(arrayName==='placed') placedOrders.splice(idx,1);
+  renderOrders(); logArrays();
+}
 
-confirmProblemBtn.addEventListener('click', () => {
+function serveOrder(idx){
+  const order = placedOrders.splice(idx,1)[0];
+  servedOrders.push(order);
+  renderOrders(); logArrays();
+}
+
+function payOrder(idx){
+  currentPaymentOrder = servedOrders[idx];
+  paymentInfo.innerHTML = `${currentPaymentOrder.description} - ${currentPaymentOrder.item} x${currentPaymentOrder.quantity} - Total: ${currentPaymentOrder.total} mts`;
+  paymentModal.style.display='flex';
+}
+
+confirmPaymentBtn.addEventListener('click',()=>{
+  registeredOrders.push(currentPaymentOrder);
+  servedOrders = servedOrders.filter(o=>o!==currentPaymentOrder);
+  paymentModal.style.display='none';
+  renderOrders(); logArrays();
+});
+
+cancelPaymentBtn.addEventListener('click',()=>{ paymentModal.style.display='none'; });
+
+function problemOrder(idx,arrayName){
+  currentProblemOrder={idx,arrayName};
+  problemModal.style.display='flex';
+}
+
+confirmProblemBtn.addEventListener('click',()=>{
   if(!problemSelect.value) return alert('Select a problem');
   const {idx,arrayName} = currentProblemOrder;
   let order;
@@ -184,15 +227,14 @@ confirmProblemBtn.addEventListener('click', () => {
   if(arrayName==='served') order = servedOrders.splice(idx,1)[0];
   order.problemDesc = problemSelect.value;
   problemOrders.push(order);
-  const zeroPriceOrder = {...order, total:0};
-  registeredOrders.push(zeroPriceOrder);
-  problemModal.style.display='none';
-  renderOrders();
-  logArrays();
-  problemSelect.value='';
+  registeredOrders.push({...order,total:0}); // zero price
+  problemModal.style.display='none'; problemSelect.value='';
+  renderOrders(); logArrays();
 });
 
-cancelProblemBtn.addEventListener('click', () => { problemModal.style.display='none'; problemSelect.value=''; });
+cancelProblemBtn.addEventListener('click',()=>{
+  problemModal.style.display='none'; problemSelect.value='';
+});
 </script>
 
 </body>
