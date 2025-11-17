@@ -14,6 +14,7 @@
     pre{background:#f7f7f7;padding:12px;border-radius:6px;overflow:auto}
     .table-box{border:1px solid #aaa;border-radius:8px;padding:12px;margin-bottom:12px;background:#fdfdfd;}
     .table-title{font-weight:700;font-size:16px;margin-bottom:6px;color:#333}
+    .order-tag-box{border:1px solid #bbb;border-radius:6px;padding:6px;margin:6px 0;background:#eef}
     .order-box{border:1px solid #ccc;border-radius:6px;padding:6px;margin:4px 0;background:#f7f7ff}
   </style>
 </head>
@@ -70,10 +71,7 @@
     function populateItems(section){
       const itemSelect = $('item');
       itemSelect.innerHTML = '';
-      MENU[section].forEach(it => {
-        const opt = document.createElement('option');
-        opt.value = it; opt.textContent = it; itemSelect.appendChild(opt);
-      });
+      MENU[section].forEach(it => { const opt = document.createElement('option'); opt.value = it; opt.textContent = it; itemSelect.appendChild(opt); });
     }
 
     function uid(prefix = ''){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -82,14 +80,21 @@
 
     function findTable(tableDescription){ return posData.openOrders.find(t => t.tableDescription === tableDescription); }
 
+    function findOrderTag(table, orderTag){
+      return table.orders.find(o => o.orderTag === orderTag);
+    }
+
     function placeOrder({tableDescription, orderTag, section, item, qty}){
       const timestamp = new Date().toISOString();
       let table = findTable(tableDescription);
       if(!table){ table = { tableId: uid('TBL-'), tableDescription, status: 'occupied', createdAt: timestamp, orders: [] }; posData.openOrders.push(table); }
 
-      // Always add a new order even if the Order Tag exists to allow multiple items per tag
-      const order = { orderId: uid('ORD-'), orderTag: orderTag || 'Single Order', section, item, qty: Number(qty) || 1, timestampCreated: timestamp, orderStatus: 'open' };
-      table.orders.push(order);
+      let tagOrder = findOrderTag(table, orderTag);
+      if(!tagOrder){ tagOrder = { orderTag: orderTag || 'Single Order', items: [] }; table.orders.push(tagOrder); }
+
+      const existingItem = tagOrder.items.find(i => i.item === item);
+      if(existingItem){ existingItem.qty += Number(qty) || 1; }
+      else{ tagOrder.items.push({ item, qty: Number(qty) || 1, section, timestampCreated: timestamp, orderStatus: 'open' }); }
 
       updateSnapshot(); renderTables();
     }
@@ -105,11 +110,19 @@
         tableTitle.textContent = table.tableDescription;
         tableDiv.appendChild(tableTitle);
 
-        table.orders.forEach(o => {
-          const orderDiv = document.createElement('div');
-          orderDiv.className = 'order-box';
-          orderDiv.textContent = `${o.orderTag}: ${o.qty} x ${o.item}`;
-          tableDiv.appendChild(orderDiv);
+        table.orders.forEach(tag => {
+          const tagDiv = document.createElement('div');
+          tagDiv.className = 'order-tag-box';
+          const tagTitle = document.createElement('div');
+          tagTitle.style.fontWeight='600'; tagTitle.textContent = tag.orderTag;
+          tagDiv.appendChild(tagTitle);
+          tag.items.forEach(o => {
+            const orderDiv = document.createElement('div');
+            orderDiv.className = 'order-box';
+            orderDiv.textContent = `${o.qty} x ${o.item} (${o.section})`;
+            tagDiv.appendChild(orderDiv);
+          });
+          tableDiv.appendChild(tagDiv);
         });
 
         container.appendChild(tableDiv);
