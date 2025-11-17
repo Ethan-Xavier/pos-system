@@ -19,15 +19,15 @@
   <p>Fill fields and click <strong>Place Order</strong>. The program will build a <code>posData</code> object and log it to the console.</p>
 
   <div class="card">
-    <label for="tableDesc">1. Table Description (required)</label>
+    <label for="tableDesc">Table Description (required)</label>
     <input id="tableDesc" placeholder="Table 1 / John - Table / Window seat" required />
 
-    <label for="orderTag">2. Order Tag</label>
+    <label for="orderTag">Order Tag</label>
     <input id="orderTag" placeholder="Single Order" value="Single Order" />
 
     <div class="row">
       <div>
-        <label for="section">3. Section</label>
+        <label for="section">Section</label>
         <select id="section">
           <option value="Food">Food</option>
           <option value="Drinks">Drinks</option>
@@ -35,17 +35,17 @@
       </div>
 
       <div>
-        <label for="item">4. Item</label>
+        <label for="item">Item</label>
         <select id="item"></select>
       </div>
 
       <div style="max-width:110px">
-        <label for="qty">5. Qty</label>
+        <label for="qty">Qty</label>
         <input id="qty" type="number" min="1" value="1" />
       </div>
     </div>
 
-    <label style="margin-top:12px">6. </label>
+    <label style="margin-top:12px"> </label>
     <button id="placeOrderBtn">Place order</button>
   </div>
 
@@ -128,7 +128,7 @@
       table.orders.push(order);
 
       // Log as if we are writing to a database (console)
-      console.log('--- posData (simulated DB write) ---');
+      
       console.log(posData);
 
       // Update visible snapshot
