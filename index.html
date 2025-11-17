@@ -16,11 +16,7 @@
 </head>
 <body>
   <h2>POS — Input (Demo)</h2>
-  <p>Fill fields and click <strong>Place Order</strong>. The program will build a <code>posData</code> object and log it to the console.</p>
-
-  <div class="card">
-    <label for="tableDesc">Table Description (required)</label>
-    <input id="tableDesc" placeholder="Table 1 / John - Table / Window seat" required />
+  hn - Table / Window seat" required />
 
     <label for="orderTag">Order Tag</label>
     <input id="orderTag" placeholder="Single Order" value="Single Order" />
@@ -58,7 +54,14 @@
   <script>
     // Demo items per section — you will replace with real menu later.
     const MENU = {
-      Food: ["Burger", "Pizza", "Salad", "Pasta"],
+      Food: ["Burger", "Pizza</div>
+
+  <div class="card">
+    <h3>Tables & Orders</h3>
+    <div id="tables"></div>
+  </div>
+
+  <script>"],
       Drinks: ["Water", "Soda", "Coffee", "Juice"]
     };
 
@@ -136,8 +139,8 @@
     }
 
     // Wire UI
-    $('section').addEventListener('change', e => populateItems(e.target.value));
-    populateItems($('section').value);
+    $('section').addEventListener('c// console.log removed> populateItems(e.target.value));
+    populateItemsupdateSnapshot(); renderTables();ue);
 
     $('placeOrderBtn').addEventListener('click', () => {
       const tableDescription = $('tableDesc').value.trim();
@@ -166,3 +169,19 @@
   </script>
 </body>
 </html>
+function renderTables(){
+      const container = document.getElementById('tables');
+      container.innerHTML = '';
+      posData.openOrders.forEach(table => {
+        const div = document.createElement('div');
+        div.style.border = '1px solid #ddd';
+        div.style.padding = '8px';
+        div.style.marginBottom = '8px';
+        div.style.borderRadius = '6px';
+        div.innerHTML = `<strong>${table.tableDescription}</strong><br>` +
+          table.orders.map(o=>`- ${o.orderTag}: ${o.qty} x ${o.item}`).join('<br>');
+        container.appendChild(div);
+      });
+    }
+
+    // Initial renderupdateSnapshot(); renderTables();
