@@ -26,9 +26,7 @@
       font-size:16px;
       margin-bottom:6px;
       color:#333;
-      display:flex;
-      align-items:center;
-      position:relative;
+      cursor:pointer;
     }
 
     .order-tag-box{
@@ -39,7 +37,11 @@
       background:#eef;
       display:flex;
       flex-direction:column;
-      position:relative;
+    }
+
+    .tag-header{
+      font-weight:600;
+      cursor:pointer;
     }
 
     .order-box{
@@ -47,29 +49,7 @@
       border-radius:6px;
       padding:6px;
       margin:4px 0;
-      background:#f7f7ff
-    }
-
-    .edit-btn{
-      border:none;
-      background:none;
-      cursor:pointer;
-      font-size:14px;
-      transform: rotate(-20deg);
-      padding:0;
-      margin:0;
-      line-height:1;
-      position:absolute;
-      left:-2px;
-      top:0;
-      opacity:0.6;
-    }
-
-    .edit-btn:hover { opacity:1; }
-
-    .tag-header{
-      font-weight:600;
-      position:relative;
+      background:#f7f7ff;
     }
 
     .order-total{
@@ -222,21 +202,11 @@
 
         const tableTitleDiv = document.createElement('div');
         tableTitleDiv.className = 'table-title';
-
-        /* TABLE PENCIL ICON */
-        const editBtnTable = document.createElement('button');
-        editBtnTable.className = 'edit-btn';
-        editBtnTable.innerHTML = '✏';
-        editBtnTable.onclick = () => {
+        tableTitleDiv.textContent = table.tableDescription;
+        tableTitleDiv.onclick = () => {
           const newText = prompt('Edit Table Description', table.tableDescription);
           if(newText){ table.tableDescription = newText; updateSnapshot(); renderTables(); }
         };
-        tableTitleDiv.appendChild(editBtnTable);
-
-        const tableText = document.createElement('span');
-        tableText.textContent = table.tableDescription;
-        tableTitleDiv.appendChild(tableText);
-
         tableDiv.appendChild(tableTitleDiv);
 
         /* ORDER TAGS */
@@ -246,21 +216,11 @@
 
           const tagHeader = document.createElement('div');
           tagHeader.className = 'tag-header';
-
-          /* ORDER TAG PENCIL ICON */
-          const editBtnTag = document.createElement('button');
-          editBtnTag.className = 'edit-btn';
-          editBtnTag.innerHTML = '✏';
-          editBtnTag.onclick = () => {
+          tagHeader.textContent = tag.orderTag;
+          tagHeader.onclick = () => {
             const newText = prompt('Edit Order Tag', tag.orderTag);
             if(newText){ tag.orderTag = newText; updateSnapshot(); renderTables(); }
           };
-          tagHeader.appendChild(editBtnTag);
-
-          const tagText = document.createElement('span');
-          tagText.textContent = tag.orderTag;
-          tagHeader.appendChild(tagText);
-
           tagDiv.appendChild(tagHeader);
 
           tag.items.forEach(o => {
