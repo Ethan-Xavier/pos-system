@@ -29,7 +29,6 @@
       display:flex;
       align-items:center;
       position:relative;
-      padding-left:18px; /* space for pencil overlap */
     }
 
     .order-tag-box{
@@ -41,7 +40,6 @@
       display:flex;
       flex-direction:column;
       position:relative;
-      padding-left:18px; /* space for pencil overlap */
     }
 
     .order-box{
@@ -62,8 +60,8 @@
       margin:0;
       line-height:1;
       position:absolute;
-      left:0;
-      top:2px;
+      left:-2px;
+      top:0;
       opacity:0.6;
     }
 
@@ -115,17 +113,17 @@
     <button id="placeOrderBtn">Place order</button>
   </div>
 
-  <!-- SNAPSHOT -->
-  <div class="card">
-    <h3>posData (current snapshot)</h3>
-    <pre id="snapshot">(no orders yet)</pre>
-    <p style="font-size:13px;color:#666">Snapshot of posData object</p>
-  </div>
-
   <!-- TABLES -->
   <div class="card">
     <h3>Tables & Orders</h3>
     <div id="tables"></div>
+  </div>
+
+  <!-- SNAPSHOT BELOW TABLES -->
+  <div class="card">
+    <h3>posData (current snapshot)</h3>
+    <pre id="snapshot">(no orders yet)</pre>
+    <p style="font-size:13px;color:#666">Snapshot of posData object</p>
   </div>
 
   <script>
@@ -225,7 +223,7 @@
         const tableTitleDiv = document.createElement('div');
         tableTitleDiv.className = 'table-title';
 
-        /* TABLE PENCIL ICON (updated) */
+        /* TABLE PENCIL ICON */
         const editBtnTable = document.createElement('button');
         editBtnTable.className = 'edit-btn';
         editBtnTable.innerHTML = '✏';
@@ -249,7 +247,7 @@
           const tagHeader = document.createElement('div');
           tagHeader.className = 'tag-header';
 
-          /* ORDER TAG PENCIL ICON (updated) */
+          /* ORDER TAG PENCIL ICON */
           const editBtnTag = document.createElement('button');
           editBtnTag.className = 'edit-btn';
           editBtnTag.innerHTML = '✏';
@@ -310,4 +308,3 @@
   </script>
 </body>
 </html>
-
