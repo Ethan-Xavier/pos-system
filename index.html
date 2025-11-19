@@ -13,75 +13,25 @@
     .card{border:1px solid #eee;padding:12px;border-radius:8px;margin-top:12px}
     pre{background:#f7f7f7;padding:12px;border-radius:6px;overflow:auto}
 
-    .table-box{
-      border:1px solid #aaa;
-      border-radius:8px;
-      padding:12px;
-      margin-bottom:12px;
-      background:#fdfdfd;
-    }
+    .table-box{border:1px solid #aaa;border-radius:8px;padding:12px;margin-bottom:12px;background:#fdfdfd;}
+    .table-title{font-weight:700;font-size:16px;margin-bottom:6px;color:#333;cursor:pointer;}
+    .order-tag-box{border:1px solid #bbb;border-radius:6px;padding:6px;margin:6px 0;background:#eef;display:flex;flex-direction:column;position:relative;}
+    .tag-header{font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+    .cancel-btn{background:#ff4d4d;color:white;border:none;border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;margin-left:4px;}
+    .pay-btn{background:#4CAF50;color:white;border:none;border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;margin-left:4px;}
+    .order-box{border:1px solid #ccc;border-radius:6px;padding:6px;margin:4px 0;background:#f7f7ff;}
+    .order-total{margin-top:4px;font-weight:600;text-align:right;}
 
-    .table-title{
-      font-weight:700;
-      font-size:16px;
-      margin-bottom:6px;
-      color:#333;
-      cursor:pointer;
+    /* Modal */
+    .modal-overlay{
+      position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;
+      z-index:999;
     }
-
-    .order-tag-box{
-      border:1px solid #bbb;
-      border-radius:6px;
-      padding:6px;
-      margin:6px 0;
-      background:#eef;
-      display:flex;
-      flex-direction:column;
-      position:relative;
+    .modal{
+      background:white;padding:16px;border-radius:8px;max-width:400px;width:90%;
     }
-
-    .tag-header{
-      font-weight:600;
-      cursor:pointer;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
-
-    .cancel-btn{
-      background:#ff4d4d;
-      color:white;
-      border:none;
-      border-radius:4px;
-      padding:2px 6px;
-      font-size:12px;
-      cursor:pointer;
-      margin-left:4px;
-    }
-
-    .pay-btn{
-      background:#4CAF50;
-      color:white;
-      border:none;
-      border-radius:4px;
-      padding:2px 6px;
-      font-size:12px;
-      cursor:pointer;
-    }
-
-    .order-box{
-      border:1px solid #ccc;
-      border-radius:6px;
-      padding:6px;
-      margin:4px 0;
-      background:#f7f7ff;
-    }
-
-    .order-total{
-      margin-top:4px;
-      font-weight:600;
-      text-align:right;
-    }
+    .modal h3{margin-top:0;}
+    .modal .row{gap:4px;margin-top:8px;}
   </style>
 </head>
 <body>
@@ -91,7 +41,6 @@
   <div class="card">
     <label for="tableDesc">Table Description (required)</label>
     <input id="tableDesc" placeholder="Table 1 / John - Table / Window seat" required />
-
     <label for="orderTag">Order Tag</label>
     <input id="orderTag" placeholder="Single Order" value="Single Order" />
 
@@ -103,18 +52,15 @@
           <option value="Drinks">Drinks</option>
         </select>
       </div>
-
       <div>
         <label for="item">Item</label>
         <select id="item"></select>
       </div>
-
       <div style="max-width:110px">
         <label for="qty">Qty</label>
         <input id="qty" type="number" min="1" value="1" />
       </div>
     </div>
-
     <button id="placeOrderBtn">Place order</button>
   </div>
 
@@ -131,20 +77,25 @@
     <p style="font-size:13px;color:#666">Snapshot of posData object</p>
   </div>
 
+  <!-- PAYMENT MODAL -->
+  <div id="paymentModal" class="modal-overlay">
+    <div class="modal">
+      <h3>Confirm Payment</h3>
+      <div id="modalItems"></div>
+      <label for="paymentMethod">Payment Method:</label>
+      <select id="paymentMethod">
+        <option value="Cash">Cash</option>
+        <option value="Card">Card</option>
+        <option value="Mobile">Mobile</option>
+      </select>
+      <button id="confirmPaymentBtn" style="margin-top:8px;background:#4CAF50;color:white;border:none;padding:6px 12px;border-radius:4px;">Confirm</button>
+    </div>
+  </div>
+
   <script>
     const MENU = { 
-      Food: [
-        {name:"Burger", price:5},
-        {name:"Pizza", price:8},
-        {name:"Salad", price:4},
-        {name:"Pasta", price:7}
-      ],
-      Drinks: [
-        {name:"Water", price:1},
-        {name:"Soda", price:2},
-        {name:"Coffee", price:3},
-        {name:"Juice", price:3}
-      ]
+      Food: [{name:"Burger", price:5},{name:"Pizza", price:8},{name:"Salad", price:4},{name:"Pasta", price:7}],
+      Drinks: [{name:"Water", price:1},{name:"Soda", price:2},{name:"Coffee", price:3},{name:"Juice", price:3}]
     };
 
     const posData = { openOrders: [], closedOrders: [], problemOrders: [] };
@@ -167,135 +118,71 @@
       return found ? found.price : 0;
     }
 
-    function uid(prefix = ''){ 
-      return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,7); 
-    }
+    function uid(prefix = ''){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-    function updateSnapshot(){ 
-      snapshotEl.textContent = JSON.stringify(posData, null, 2); 
-    }
+    function updateSnapshot(){ snapshotEl.textContent = JSON.stringify(posData, null, 2); }
 
-    function findTable(tableDescription){ 
-      return posData.openOrders.find(t => t.tableDescription === tableDescription); 
-    }
+    function findTable(tableDescription){ return posData.openOrders.find(t => t.tableDescription === tableDescription); }
 
     function placeOrder({tableDescription, orderTag, section, item, qty}){
       const timestamp = new Date().toISOString();
-
       let table = findTable(tableDescription);
       if(!table){
-        table = {
-          tableId: uid('TBL-'),
-          tableDescription,
-          status: 'occupied',
-          createdAt: timestamp,
-          orders: []
-        };
+        table = { tableId: uid('TBL-'), tableDescription, status: 'occupied', createdAt: timestamp, orders: [] };
         posData.openOrders.push(table);
       }
-
       let tagOrder = table.orders.find(o => o.orderTag === orderTag);
-      if(!tagOrder){
-        tagOrder = { orderTag: orderTag || 'Single Order', items: [] };
-        table.orders.push(tagOrder);
-      }
-
+      if(!tagOrder){ tagOrder = { orderTag: orderTag || 'Single Order', items: [] }; table.orders.push(tagOrder); }
       const existingItem = tagOrder.items.find(i => i.item === item);
-      if(existingItem){
-        existingItem.qty += Number(qty) || 1;
-      } else {
-        tagOrder.items.push({
-          item,
-          qty: Number(qty) || 1,
-          price: getItemPrice(section, item),
-          timestampCreated: timestamp,
-          orderStatus: 'open'
-        });
-      }
-
-      updateSnapshot();
-      renderTables();
+      if(existingItem){ existingItem.qty += Number(qty) || 1; } 
+      else { tagOrder.items.push({ item, qty: Number(qty) || 1, price: getItemPrice(section,item), timestampCreated: timestamp, orderStatus:'open' }); }
+      updateSnapshot(); renderTables();
     }
 
     function renderTables(){
-      const container = document.getElementById('tables');
+      const container = $('tables');
       container.innerHTML = '';
-
-      posData.openOrders.forEach((table, tIndex) => {
-        const tableDiv = document.createElement('div');
-        tableDiv.className = 'table-box';
-
-        const tableTitleDiv = document.createElement('div');
-        tableTitleDiv.className = 'table-title';
-        tableTitleDiv.textContent = table.tableDescription;
+      posData.openOrders.forEach((table, tIndex)=>{
+        const tableDiv = document.createElement('div'); tableDiv.className='table-box';
+        const tableTitleDiv = document.createElement('div'); tableTitleDiv.className='table-title'; tableTitleDiv.textContent = table.tableDescription;
         tableTitleDiv.onclick = () => {
           const newText = prompt('Edit Table Description', table.tableDescription);
-          if(newText){ table.tableDescription = newText; updateSnapshot(); renderTables(); }
+          if(newText){ table.tableDescription=newText; updateSnapshot(); renderTables(); }
         };
         tableDiv.appendChild(tableTitleDiv);
 
-        table.orders.forEach((tag, tagIndex) => {
-          const tagDiv = document.createElement('div');
-          tagDiv.className = 'order-tag-box';
-
-          const tagHeader = document.createElement('div');
-          tagHeader.className = 'tag-header';
-
-          const tagText = document.createElement('span');
-          tagText.textContent = tag.orderTag;
-          tagText.onclick = () => {
-            const newText = prompt('Edit Order Tag', tag.orderTag);
-            if(newText){ tag.orderTag = newText; updateSnapshot(); renderTables(); }
-          };
+        table.orders.forEach((tag, tagIndex)=>{
+          const tagDiv = document.createElement('div'); tagDiv.className='order-tag-box';
+          const tagHeader = document.createElement('div'); tagHeader.className='tag-header';
+          const tagText = document.createElement('span'); tagText.textContent=tag.orderTag;
+          tagText.onclick = () => { const newText = prompt('Edit Order Tag', tag.orderTag); if(newText){ tag.orderTag=newText; updateSnapshot(); renderTables(); } };
           tagHeader.appendChild(tagText);
 
-          // Pay button
-          const payBtn = document.createElement('button');
-          payBtn.className = 'pay-btn';
-          payBtn.textContent = 'Pay';
-          payBtn.onclick = () => {
-            tag.items.forEach(i => {
-              posData.closedOrders.push({
-                item: i.item,
-                qty: i.qty,
-                price: i.price,
-                timestampCreated: i.timestampCreated
-              });
-            });
-            table.orders.splice(tagIndex,1);
-            if(table.orders.length === 0) posData.openOrders.splice(tIndex,1);
-            updateSnapshot();
-            renderTables();
-          };
+          // PAY BUTTON → opens modal
+          const payBtn = document.createElement('button'); payBtn.className='pay-btn'; payBtn.textContent='Pay';
+          payBtn.onclick = () => openPaymentModal(table, tag, tIndex, tagIndex);
           tagHeader.appendChild(payBtn);
 
-          // Cancel button
-          const cancelBtn = document.createElement('button');
-          cancelBtn.className = 'cancel-btn';
-          cancelBtn.textContent = 'Cancel';
-          cancelBtn.onclick = () => {
-            table.orders.splice(tagIndex, 1);
-            if(table.orders.length === 0){
-              posData.openOrders.splice(tIndex, 1);
-            }
-            updateSnapshot();
-            renderTables();
+          // CANCEL BUTTON
+          const cancelBtn = document.createElement('button'); cancelBtn.className='cancel-btn'; cancelBtn.textContent='Cancel';
+          cancelBtn.onclick = ()=>{
+            table.orders.splice(tagIndex,1);
+            if(table.orders.length===0) posData.openOrders.splice(tIndex,1);
+            updateSnapshot(); renderTables();
           };
           tagHeader.appendChild(cancelBtn);
 
           tagDiv.appendChild(tagHeader);
 
-          tag.items.forEach(o => {
-            const orderDiv = document.createElement('div');
-            orderDiv.className = 'order-box';
-            orderDiv.textContent = `${o.item} x ${o.qty} - $${o.price}`;
+          tag.items.forEach(o=>{
+            const orderDiv=document.createElement('div'); orderDiv.className='order-box';
+            orderDiv.textContent=`${o.item} x ${o.qty} - $${o.price}`;
             tagDiv.appendChild(orderDiv);
           });
 
-          const totalDiv = document.createElement('div');
-          totalDiv.className = 'order-total';
-          const total = tag.items.reduce((sum, i) => sum + i.qty * i.price, 0);
-          totalDiv.textContent = `Total: $${total}`;
+          const totalDiv=document.createElement('div'); totalDiv.className='order-total';
+          const total=tag.items.reduce((sum,i)=>sum+i.qty*i.price,0);
+          totalDiv.textContent=`Total: $${total}`;
           tagDiv.appendChild(totalDiv);
 
           tableDiv.appendChild(tagDiv);
@@ -305,28 +192,55 @@
       });
     }
 
-    $('section').addEventListener('change', e => populateItems(e.target.value));
+    // Payment Modal Functions
+    function openPaymentModal(table, tag, tIndex, tagIndex){
+      const modal = $('paymentModal');
+      const modalItems = $('modalItems');
+      const paymentMethodSelect = $('paymentMethod');
+      modalItems.innerHTML = '';
+      tag.items.forEach(i=>{
+        const div = document.createElement('div');
+        div.textContent = `${i.item} x ${i.qty} - $${i.price}`;
+        modalItems.appendChild(div);
+      });
+      modal.style.display='flex';
+
+      const confirmBtn = $('confirmPaymentBtn');
+      confirmBtn.onclick = ()=>{
+        const method = paymentMethodSelect.value;
+        tag.items.forEach(i=>{
+          posData.closedOrders.push({
+            item:i.item,
+            qty:i.qty,
+            price:i.price,
+            timestampCreated:i.timestampCreated,
+            paymentMethod: method
+          });
+        });
+        table.orders.splice(tagIndex,1);
+        if(table.orders.length===0) posData.openOrders.splice(tIndex,1);
+        modal.style.display='none';
+        updateSnapshot(); renderTables();
+      };
+    }
+
+    $('section').addEventListener('change', e=>populateItems(e.target.value));
     populateItems($('section').value);
 
-    $('placeOrderBtn').addEventListener('click', () => {
-      const tableDescription = $('tableDesc').value.trim();
+    $('placeOrderBtn').addEventListener('click', ()=>{
+      const tableDescription=$('tableDesc').value.trim();
       if(!tableDescription){ alert('Table Description is required.'); return; }
-
-      const payload = {
+      placeOrder({
         tableDescription,
-        orderTag: $('orderTag').value.trim() || 'Single Order',
-        section: $('section').value,
-        item: $('item').value,
-        qty: $('qty').value
-      };
-
-      placeOrder(payload);
-      $('orderTag').value = 'Single Order';
-      $('qty').value = 1;
+        orderTag:$('orderTag').value.trim()||'Single Order',
+        section:$('section').value,
+        item:$('item').value,
+        qty:$('qty').value
+      });
+      $('orderTag').value='Single Order'; $('qty').value=1;
     });
 
-    updateSnapshot();
-    renderTables();
+    updateSnapshot(); renderTables();
   </script>
 </body>
 </html>
