@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>POS — Input & Table Structure (Demo)</title>
   <style>
-    body { font-family: system-ui, -apple-system, Arial; padding: 24px; max-width:800px; margin:0 auto; }
+    body { font-family: system-ui, Arial; padding: 24px; max-width:800px; margin:0 auto; }
     label{display:block;margin-top:10px;font-weight:600}
     input, select, button { padding:8px; font-size:14px; width:100%; box-sizing:border-box }
     .row{display:flex;gap:8px}
@@ -13,28 +13,104 @@
     .card{border:1px solid #eee;padding:12px;border-radius:8px;margin-top:12px}
     pre{background:#f7f7f7;padding:12px;border-radius:6px;overflow:auto}
 
-    .table-box{border:1px solid #aaa;border-radius:8px;padding:12px;margin-bottom:12px;background:#fdfdfd;}
-    .table-title{font-weight:700;font-size:16px;margin-bottom:6px;color:#333;cursor:pointer;}
-    .order-tag-box{border:1px solid #bbb;border-radius:6px;padding:6px;margin:6px 0;background:#eef;display:flex;flex-direction:column;position:relative;}
-    .tag-header{font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
-    .cancel-btn{background:#ff4d4d;color:white;border:none;border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;margin-left:4px;}
-    .pay-btn{background:#4CAF50;color:white;border:none;border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;margin-left:4px;}
-    .order-box{border:1px solid #ccc;border-radius:6px;padding:6px;margin:4px 0;background:#f7f7ff;}
-    .order-total{margin-top:4px;font-weight:600;text-align:right;}
+    .table-box{
+      border:1px solid #aaa;
+      border-radius:8px;
+      padding:12px;
+      margin-bottom:12px;
+      background:#fdfdfd;
+    }
 
-    /* Modal */
-    .modal-overlay{
-      position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;
-      z-index:999;
+    .table-title{
+      font-weight:700;
+      font-size:16px;
+      margin-bottom:6px;
+      color:#333;
+      cursor:pointer;
     }
-    .modal{
-      background:white;padding:16px;border-radius:8px;max-width:400px;width:90%;
+
+    .order-tag-box{
+      border:1px solid #bbb;
+      border-radius:6px;
+      padding:6px;
+      margin:6px 0;
+      background:#eef;
     }
-    .modal h3{margin-top:0;}
-    .modal .row{gap:4px;margin-top:8px;}
-    .modal button{margin-top:8px;padding:6px 12px;border-radius:4px;border:none;cursor:pointer;}
-    .modal .confirm-btn{background:#4CAF50;color:white;}
-    .modal .cancel-modal-btn{background:#ccc;color:#333;margin-left:4px;}
+
+    .tag-header{
+      font-weight:600;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      cursor:pointer;
+    }
+
+    .tag-buttons{
+      display:flex;
+      gap:6px;
+    }
+
+    .order-box{
+      border:1px solid #ccc;
+      border-radius:6px;
+      padding:6px;
+      margin:4px 0;
+      background:#f7f7ff
+    }
+
+    .order-total{
+      margin-top:4px;
+      font-weight:600;
+      text-align:right;
+    }
+
+    .btn-cancel{
+      background:#d9534f;
+      color:white;
+      border:none;
+      padding:5px 8px;
+      border-radius:4px;
+      cursor:pointer;
+      width:auto;
+    }
+
+    .btn-pay{
+      background:#5cb85c;
+      color:white;
+      border:none;
+      padding:5px 8px;
+      border-radius:4px;
+      cursor:pointer;
+      width:auto;
+    }
+
+    .btn-move{
+      background:#0275d8;
+      color:white;
+      border:none;
+      padding:5px 8px;
+      border-radius:4px;
+      cursor:pointer;
+      width:auto;
+    }
+
+    /* POPUP */
+    #payPopup{
+      position:fixed;
+      top:0;left:0;
+      width:100%;height:100%;
+      background:rgba(0,0,0,0.5);
+      display:none;
+      align-items:center;
+      justify-content:center;
+    }
+    #payPopupContent{
+      background:white;
+      padding:20px;
+      border-radius:8px;
+      width:300px;
+    }
+    #payPopup h3{margin-top:0}
   </style>
 </head>
 <body>
@@ -44,6 +120,7 @@
   <div class="card">
     <label for="tableDesc">Table Description (required)</label>
     <input id="tableDesc" placeholder="Table 1 / John - Table / Window seat" required />
+
     <label for="orderTag">Order Tag</label>
     <input id="orderTag" placeholder="Single Order" value="Single Order" />
 
@@ -55,15 +132,18 @@
           <option value="Drinks">Drinks</option>
         </select>
       </div>
+
       <div>
         <label for="item">Item</label>
         <select id="item"></select>
       </div>
+
       <div style="max-width:110px">
         <label for="qty">Qty</label>
         <input id="qty" type="number" min="1" value="1" />
       </div>
     </div>
+
     <button id="placeOrderBtn">Place order</button>
   </div>
 
@@ -73,183 +153,303 @@
     <div id="tables"></div>
   </div>
 
-  <!-- SNAPSHOT BELOW TABLES -->
+  <!-- SNAPSHOT MOVED BELOW -->
   <div class="card">
     <h3>posData (current snapshot)</h3>
     <pre id="snapshot">(no orders yet)</pre>
-    <p style="font-size:13px;color:#666">Snapshot of posData object</p>
   </div>
 
-  <!-- PAYMENT MODAL -->
-  <div id="paymentModal" class="modal-overlay">
-    <div class="modal">
+  <!-- PAYMENT POPUP -->
+  <div id="payPopup">
+    <div id="payPopupContent">
       <h3>Confirm Payment</h3>
-      <div id="modalItems"></div>
-      <label for="paymentMethod">Payment Method:</label>
+      <div id="payDetails"></div>
+
+      <label>Payment Method:</label>
       <select id="paymentMethod">
-        <option value="Cash">Cash</option>
-        <option value="Card">Card</option>
-        <option value="Mobile">Mobile</option>
+        <option value="cash">Cash</option>
+        <option value="card">Card</option>
+        <option value="mobile">Mobile</option>
       </select>
-      <div class="row" style="margin-top:8px;">
-        <button id="confirmPaymentBtn" class="confirm-btn">Confirm</button>
-        <button id="cancelPaymentBtn" class="cancel-modal-btn">Cancel</button>
-      </div>
+
+      <button id="confirmPay" class="btn-pay" style="margin-top:10px;width:100%">Confirm</button>
+      <button id="cancelPay" class="btn-cancel" style="margin-top:6px;width:100%">Cancel</button>
     </div>
   </div>
 
-  <script>
-    const MENU = { 
-      Food: [{name:"Burger", price:5},{name:"Pizza", price:8},{name:"Salad", price:4},{name:"Pasta", price:7}],
-      Drinks: [{name:"Water", price:1},{name:"Soda", price:2},{name:"Coffee", price:3},{name:"Juice", price:3}]
+<script>
+const MENU = { 
+  Food: [
+    {name:"Burger", price:5},
+    {name:"Pizza", price:8},
+    {name:"Salad", price:4},
+    {name:"Pasta", price:7}
+  ],
+  Drinks: [
+    {name:"Water", price:1},
+    {name:"Soda", price:2},
+    {name:"Coffee", price:3},
+    {name:"Juice", price:3}
+  ]
+};
+
+const posData = { openOrders: [], closedOrders: [], problemOrders: [] };
+const $ = id => document.getElementById(id);
+const snapshotEl = $('snapshot');
+
+function populateItems(section){
+  const itemSelect = $('item');
+  itemSelect.innerHTML = '';
+  MENU[section].forEach(it => {
+    const opt = document.createElement('option');
+    opt.value = it.name;
+    opt.textContent = `${it.name} - $${it.price}`;
+    itemSelect.appendChild(opt);
+  });
+}
+
+function getItemPrice(section, itemName){
+  const found = MENU[section].find(i => i.name === itemName);
+  return found ? found.price : 0;
+}
+
+function uid(prefix = ''){
+  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+function updateSnapshot(){ 
+  snapshotEl.textContent = JSON.stringify(posData, null, 2); 
+}
+
+function findTable(desc){
+  return posData.openOrders.find(t => t.tableDescription === desc);
+}
+
+function placeOrder({tableDescription, orderTag, section, item, qty}){
+  const timestamp = new Date().toISOString();
+
+  let table = findTable(tableDescription);
+  if(!table){
+    table = {
+      tableId: uid('TBL-'),
+      tableDescription,
+      status:'occupied',
+      createdAt: timestamp,
+      orders: []
+    };
+    posData.openOrders.push(table);
+  }
+
+  let tagOrder = table.orders.find(t => t.orderTag === orderTag);
+  if(!tagOrder){
+    tagOrder = { orderTag: orderTag || 'Single Order', items: [] };
+    table.orders.push(tagOrder);
+  }
+
+  const existingItem = tagOrder.items.find(i => i.item === item);
+  if(existingItem){
+    existingItem.qty += Number(qty);
+  } else {
+    tagOrder.items.push({
+      item,
+      qty:Number(qty),
+      price:getItemPrice(section, item),
+      timestampCreated: timestamp,
+      orderStatus:'open'
+    });
+  }
+
+  updateSnapshot();
+  renderTables();
+}
+
+/* ========== MOVE ORDER TAG ========== */
+function moveOrderTag(table, tag){
+  const newTableDesc = prompt("Move to which Table Description?");
+  if(!newTableDesc) return;
+
+  let destTable = findTable(newTableDesc);
+  if(!destTable){
+    destTable = {
+      tableId: uid('TBL-'),
+      tableDescription:newTableDesc,
+      status:'occupied',
+      createdAt:new Date().toISOString(),
+      orders:[]
+    };
+    posData.openOrders.push(destTable);
+  }
+
+  table.orders = table.orders.filter(t => t !== tag);
+  destTable.orders.push(tag);
+
+  if(table.orders.length === 0){
+    posData.openOrders = posData.openOrders.filter(t => t !== table);
+  }
+
+  updateSnapshot();
+  renderTables();
+}
+
+/* ======== PAYMENT POPUP HANDLING ======== */
+let currentPayTable = null;
+let currentPayTag = null;
+
+function openPayPopup(table, tag){
+  currentPayTable = table;
+  currentPayTag = tag;
+
+  $("payDetails").innerHTML = `
+    <strong>Order Tag:</strong> ${tag.orderTag}<br>
+    <strong>Total Items:</strong> ${tag.items.length}
+  `;
+
+  $("payPopup").style.display = "flex";
+}
+
+$("cancelPay").onclick = () => {
+  $("payPopup").style.display = "none";
+};
+
+$("confirmPay").onclick = () => {
+  const method = $("paymentMethod").value;
+
+  currentPayTag.items.forEach(item => {
+    posData.closedOrders.push({
+      item: item.item,
+      qty: item.qty,
+      price: item.price,
+      timestampCreated: item.timestampCreated,
+      paymentMethod: method,
+      originalOrderTag: currentPayTag.orderTag
+    });
+  });
+
+  currentPayTable.orders = currentPayTable.orders.filter(t => t !== currentPayTag);
+  if(currentPayTable.orders.length === 0){
+    posData.openOrders = posData.openOrders.filter(t => t !== currentPayTable);
+  }
+
+  $("payPopup").style.display = "none";
+
+  updateSnapshot();
+  renderTables();
+};
+
+/* ========== RENDER TABLES ========== */
+function renderTables(){
+  const container = $('tables');
+  container.innerHTML = '';
+
+  posData.openOrders.forEach(table => {
+    const tableDiv = document.createElement('div');
+    tableDiv.className = 'table-box';
+
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'table-title';
+    titleDiv.textContent = table.tableDescription;
+
+    titleDiv.onclick = () => {
+      const newDesc = prompt("Edit Table Description", table.tableDescription);
+      if(newDesc){
+        table.tableDescription = newDesc;
+        updateSnapshot();
+        renderTables();
+      }
     };
 
-    const posData = { openOrders: [], closedOrders: [], problemOrders: [] };
-    const $ = id => document.getElementById(id);
-    const snapshotEl = $('snapshot');
+    tableDiv.appendChild(titleDiv);
 
-    function populateItems(section){
-      const itemSelect = $('item');
-      itemSelect.innerHTML = '';
-      MENU[section].forEach(it => {
-        const opt = document.createElement('option');
-        opt.value = it.name;
-        opt.textContent = `${it.name} - $${it.price}`;
-        itemSelect.appendChild(opt);
-      });
-    }
+    table.orders.forEach(tag => {
+      const tagDiv = document.createElement('div');
+      tagDiv.className = "order-tag-box";
 
-    function getItemPrice(section, itemName){
-      const found = MENU[section].find(i => i.name === itemName);
-      return found ? found.price : 0;
-    }
+      const header = document.createElement('div');
+      header.className = 'tag-header';
 
-    function uid(prefix = ''){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-
-    function updateSnapshot(){ snapshotEl.textContent = JSON.stringify(posData, null, 2); }
-
-    function findTable(tableDescription){ return posData.openOrders.find(t => t.tableDescription === tableDescription); }
-
-    function placeOrder({tableDescription, orderTag, section, item, qty}){
-      const timestamp = new Date().toISOString();
-      let table = findTable(tableDescription);
-      if(!table){
-        table = { tableId: uid('TBL-'), tableDescription, status: 'occupied', createdAt: timestamp, orders: [] };
-        posData.openOrders.push(table);
-      }
-      let tagOrder = table.orders.find(o => o.orderTag === orderTag);
-      if(!tagOrder){ tagOrder = { orderTag: orderTag || 'Single Order', items: [] }; table.orders.push(tagOrder); }
-      const existingItem = tagOrder.items.find(i => i.item === item);
-      if(existingItem){ existingItem.qty += Number(qty) || 1; } 
-      else { tagOrder.items.push({ item, qty: Number(qty) || 1, price: getItemPrice(section,item), timestampCreated: timestamp, orderStatus:'open' }); }
-      updateSnapshot(); renderTables();
-    }
-
-    function renderTables(){
-      const container = $('tables');
-      container.innerHTML = '';
-      posData.openOrders.forEach((table, tIndex)=>{
-        const tableDiv = document.createElement('div'); tableDiv.className='table-box';
-        const tableTitleDiv = document.createElement('div'); tableTitleDiv.className='table-title'; tableTitleDiv.textContent = table.tableDescription;
-        tableTitleDiv.onclick = () => {
-          const newText = prompt('Edit Table Description', table.tableDescription);
-          if(newText){ table.tableDescription=newText; updateSnapshot(); renderTables(); }
-        };
-        tableDiv.appendChild(tableTitleDiv);
-
-        table.orders.forEach((tag, tagIndex)=>{
-          const tagDiv = document.createElement('div'); tagDiv.className='order-tag-box';
-          const tagHeader = document.createElement('div'); tagHeader.className='tag-header';
-          const tagText = document.createElement('span'); tagText.textContent=tag.orderTag;
-          tagText.onclick = () => { const newText = prompt('Edit Order Tag', tag.orderTag); if(newText){ tag.orderTag=newText; updateSnapshot(); renderTables(); } };
-          tagHeader.appendChild(tagText);
-
-          const payBtn = document.createElement('button'); payBtn.className='pay-btn'; payBtn.textContent='Pay';
-          payBtn.onclick = () => openPaymentModal(table, tag, tIndex, tagIndex);
-          tagHeader.appendChild(payBtn);
-
-          const cancelBtn = document.createElement('button'); cancelBtn.className='cancel-btn'; cancelBtn.textContent='Cancel';
-          cancelBtn.onclick = ()=>{
-            table.orders.splice(tagIndex,1);
-            if(table.orders.length===0) posData.openOrders.splice(tIndex,1);
-            updateSnapshot(); renderTables();
-          };
-          tagHeader.appendChild(cancelBtn);
-
-          tagDiv.appendChild(tagHeader);
-
-          tag.items.forEach(o=>{
-            const orderDiv=document.createElement('div'); orderDiv.className='order-box';
-            orderDiv.textContent=`${o.item} x ${o.qty} - $${o.price}`;
-            tagDiv.appendChild(orderDiv);
-          });
-
-          const totalDiv=document.createElement('div'); totalDiv.className='order-total';
-          const total=tag.items.reduce((sum,i)=>sum+i.qty*i.price,0);
-          totalDiv.textContent=`Total: $${total}`;
-          tagDiv.appendChild(totalDiv);
-
-          tableDiv.appendChild(tagDiv);
-        });
-
-        container.appendChild(tableDiv);
-      });
-    }
-
-    // Payment Modal Functions
-    function openPaymentModal(table, tag, tIndex, tagIndex){
-      const modal = $('paymentModal');
-      const modalItems = $('modalItems');
-      const paymentMethodSelect = $('paymentMethod');
-      const cancelModalBtn = $('cancelPaymentBtn');
-      modalItems.innerHTML = '';
-      tag.items.forEach(i=>{
-        const div = document.createElement('div');
-        div.textContent = `${i.item} x ${i.qty} - $${i.price}`;
-        modalItems.appendChild(div);
-      });
-      modal.style.display='flex';
-
-      const confirmBtn = $('confirmPaymentBtn');
-      confirmBtn.onclick = ()=>{
-        const method = paymentMethodSelect.value;
-        tag.items.forEach(i=>{
-          posData.closedOrders.push({
-            item:i.item,
-            qty:i.qty,
-            price:i.price,
-            timestampCreated:i.timestampCreated,
-            paymentMethod: method
-          });
-        });
-        table.orders.splice(tagIndex,1);
-        if(table.orders.length===0) posData.openOrders.splice(tIndex,1);
-        modal.style.display='none';
-        updateSnapshot(); renderTables();
+      /* Editable text */
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = tag.orderTag;
+      titleSpan.onclick = () => {
+        const newTag = prompt("Edit Order Tag", tag.orderTag);
+        if(newTag){
+          tag.orderTag = newTag;
+          updateSnapshot();
+          renderTables();
+        }
       };
 
-      cancelModalBtn.onclick = ()=>{
-        modal.style.display='none';
+      const btns = document.createElement('div');
+      btns.className = 'tag-buttons';
+
+      const moveBtn = document.createElement('button');
+      moveBtn.className = 'btn-move';
+      moveBtn.textContent = "Move";
+      moveBtn.onclick = () => moveOrderTag(table, tag);
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn-cancel';
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.onclick = () => {
+        table.orders = table.orders.filter(o => o !== tag);
+        if(table.orders.length === 0){
+          posData.openOrders = posData.openOrders.filter(t => t !== table);
+        }
+        updateSnapshot();
+        renderTables();
       };
-    }
 
-    $('section').addEventListener('change', e=>populateItems(e.target.value));
-    populateItems($('section').value);
+      const payBtn = document.createElement('button');
+      payBtn.className = 'btn-pay';
+      payBtn.textContent = "Pay";
+      payBtn.onclick = () => openPayPopup(table, tag);
 
-    $('placeOrderBtn').addEventListener('click', ()=>{
-      const tableDescription=$('tableDesc').value.trim();
-      if(!tableDescription){ alert('Table Description is required.'); return; }
-      placeOrder({
-        tableDescription,
-        orderTag:$('orderTag').value.trim()||'Single Order',
-        section:$('section').value,
-        item:$('item').value,
-        qty:$('qty').value
+      btns.append(moveBtn, cancelBtn, payBtn);
+
+      header.append(titleSpan, btns);
+      tagDiv.appendChild(header);
+
+      tag.items.forEach(i => {
+        const orderDiv = document.createElement('div');
+        orderDiv.className = 'order-box';
+        orderDiv.textContent = `${i.item} x ${i.qty} - $${i.price}`;
+        tagDiv.appendChild(orderDiv);
       });
-      $('orderTag').value='Single Order'; $('qty').value=1;
+
+      const total = tag.items.reduce((s,i)=>s+i.qty*i.price,0);
+      const totalDiv = document.createElement('div');
+      totalDiv.className = "order-total";
+      totalDiv.textContent = `Total: $${total}`;
+      tagDiv.appendChild(totalDiv);
+
+      tableDiv.appendChild(tagDiv);
     });
 
-    updateSnapshot(); renderTables();
-  </script>
+    container.appendChild(tableDiv);
+  });
+}
+
+$("section").addEventListener("change", e => populateItems(e.target.value));
+populateItems($("section").value);
+
+$("placeOrderBtn").addEventListener("click", () => {
+  const tableDescription = $('tableDesc').value.trim();
+  if(!tableDescription){ alert("Table Description required"); return; }
+
+  placeOrder({
+    tableDescription,
+    orderTag:$("orderTag").value.trim() || "Single Order",
+    section:$("section").value,
+    item:$("item").value,
+    qty:$("qty").value
+  });
+
+  $("orderTag").value = "Single Order";
+  $("qty").value = 1;
+});
+
+updateSnapshot();
+renderTables();
+</script>
 </body>
 </html>
