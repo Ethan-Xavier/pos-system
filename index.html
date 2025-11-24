@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>POS — No Firebase Full Version</title>
+<title>POS — No Firebase Full Version Editable</title>
 
 <style>
 body { font-family: system-ui, Arial; padding: 24px; max-width:1000px; margin:0 auto; }
@@ -35,7 +35,7 @@ pre{background:#f7f7f7;padding:12px;border-radius:6px;overflow:auto;max-height:2
 </head>
 <body>
 
-<h2>POS — No Firebase Full Version</h2>
+<h2>POS — No Firebase Full Version Editable</h2>
 
 <div class="card">
   <label for="tableDesc">Table Description (required)</label>
@@ -165,7 +165,6 @@ $('confirmPaymentBtn').onclick=()=>{
   tag.items.forEach(i=>{
     posData.closedOrders.push({ item:i.item, qty:i.qty, price:i.price, timestampCreated:i.timestampCreated, paymentMethod:method });
   });
-  // Remove from openOrders or irregularOrders
   if(fromDebt){ posData.irregularOrders=posData.irregularOrders.filter(o=>o.orderTagId!==tag.orderTagId); }
   else{ table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId); if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId); }
   payPopup.style.display='none'; payContext=null; renderTables(); updateSnapshot();
@@ -200,36 +199,36 @@ function storeIrregular(type,desc){
   const {table,tag} = irregularContext;
   const total = tag.items.reduce((s,i)=>s+i.qty*i.price,0);
   posData.irregularOrders.push({ orderTagId:tag.orderTagId, tableDescription:table.tableDescription, orderTag:tag.orderTag, items:tag.items, type, description:desc, total });
-  // remove from openOrders
   table.orders = table.orders.filter(o=>o.orderTagId!==tag.orderTagId);
   if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId);
   renderTables(); updateSnapshot();
 }
 
-// RENDER TABLES + DEBTS
+// RENDER TABLES + DEBTS + EDITABLE TABLE/ORDER NAMES
 function renderTables(){
   const container=$('tables'); container.innerHTML='';
   const debtsDiv=$('debts'); debtsDiv.innerHTML='';
 
   posData.openOrders.forEach(table=>{
     const box=document.createElement('div'); box.className='table-box';
-    const title=document.createElement('div'); title.className='table-title'; title.textContent=table.tableDescription; box.appendChild(title);
+    const title=document.createElement('div'); title.className='table-title'; title.textContent=table.tableDescription;
+    title.onclick=()=>{
+      const newDesc=prompt('Edit Table Description:',table.tableDescription); if(newDesc){ table.tableDescription=newDesc; renderTables(); updateSnapshot(); }
+    };
+    box.appendChild(title);
+
     table.orders.forEach(tag=>{
       const tbox=document.createElement('div'); tbox.className='order-tag-box';
       const head=document.createElement('div'); head.className='tag-header';
       const span=document.createElement('span'); span.textContent=tag.orderTag;
+      span.onclick=()=>{
+        const newTag=prompt('Edit Order Tag:',tag.orderTag); if(newTag){ tag.orderTag=newTag; renderTables(); updateSnapshot(); }
+      };
+
       const btns=document.createElement('div'); btns.className='tag-buttons';
       const moveBtn=document.createElement('button'); moveBtn.className='btn-move'; moveBtn.textContent='Move';
-      moveBtn.onclick=()=>{
-        const newDesc=prompt('Move to which Table Description?'); if(!newDesc)return;
-        table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId);
-        if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId);
-        let target=posData.openOrders.find(t=>t.tableDescription===newDesc);
-        if(!target){ target={tableId:uid(),tableDescription:newDesc,status:'occupied',createdAt:new Date().toISOString(),orders:[]}; posData.openOrders.push(target); }
-        target.orders.push(tag); renderTables(); updateSnapshot();
-      };
-      const cancelBtn=document.createElement('button'); cancelBtn.className='btn-cancel'; cancelBtn.textContent='Cancel';
-      cancelBtn.onclick=()=>{ table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId); if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId); renderTables(); updateSnapshot(); };
+      moveBtn.onclick=()=>{ const newDesc=prompt('Move to which Table Description?'); if(!newDesc)return; table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId); if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId); let target=posData.openOrders.find(t=>t.tableDescription===newDesc); if(!target){ target={tableId:uid(),tableDescription:newDesc,status:'occupied',createdAt:new Date().toISOString(),orders:[]}; posData.openOrders.push(target); } target.orders.push(tag); renderTables(); updateSnapshot(); };
+      const cancelBtn=document.createElement('button'); cancelBtn.className='btn-cancel'; cancelBtn.textContent='Cancel'; cancelBtn.onclick=()=>{ table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId); if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId); renderTables(); updateSnapshot(); };
       const payBtn=document.createElement('button'); payBtn.className='btn-pay'; payBtn.textContent='Pay'; payBtn.onclick=()=>openPayPopup(table,tag,null);
       btns.append(moveBtn,cancelBtn,payBtn); addIrregularButton(btns,table,tag); head.append(span,btns); tbox.appendChild(head);
 
@@ -251,12 +250,10 @@ function renderTables(){
     container.appendChild(box);
   });
 
-  // Render Debts (from irregularOrders with type Debt)
   posData.irregularOrders.filter(o=>o.type==='Debt').forEach(debt=>{
     const dbox=document.createElement('div'); dbox.className='order-tag-box';
     const desc=document.createElement('div'); desc.textContent=`${debt.description} - $${debt.total}`;
-    const payBtn=document.createElement('button'); payBtn.className='btn-pay'; payBtn.textContent='Paid';
-    payBtn.onclick=()=>openPayPopup(null,debt,true);
+    const payBtn=document.createElement('button'); payBtn.className='btn-pay'; payBtn.textContent='Paid'; payBtn.onclick=()=>openPayPopup(null,debt,true);
     dbox.append(desc,payBtn); debtsDiv.appendChild(dbox);
   });
 }
@@ -269,6 +266,5 @@ $('placeOrderBtn').onclick=()=>{
 updateSnapshot();
 renderTables();
 </script>
-
 </body>
 </html>
