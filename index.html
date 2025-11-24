@@ -24,10 +24,11 @@
     .btn-cancel{background:#d9534f;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
     .btn-pay{background:#5cb85c;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
     .btn-move{background:#0275d8;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
+    .btn-irregular{background:#000;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
 
-    #payPopup{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999}
-    #payPopupContent{background:#fff;padding:18px;border-radius:8px;width:320px;max-width:90%}
-    #payPopupContent h3{margin-top:0}
+    #payPopup, #irregularPopup{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999}
+    #payPopupContent, #irregularPopupContent{background:#fff;padding:18px;border-radius:8px;width:320px;max-width:90%}
+    #payPopupContent h3, #irregularPopupContent h3{margin-top:0}
   </style>
 </head>
 <body>
@@ -86,6 +87,22 @@
       <div style="margin-top:10px;display:flex;gap:8px">
         <button id="confirmPaymentBtn" class="btn-pay" style="flex:1">Confirm</button>
         <button id="cancelPaymentBtn" class="btn-cancel" style="flex:1">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="irregularPopup">
+    <div id="irregularPopupContent">
+      <h3>Mark as Irregular</h3>
+      <div id="irregularOptions">
+        <button class="irregOption" data-type="Debt">Debt</button>
+        <button class="irregOption" data-type="Cooking mistake">Cooking mistake</button>
+        <button class="irregOption" data-type="Other">Other</button>
+      </div>
+      <div id="irregInputs" style="margin-top:10px;"></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="confirmIrregularBtn" class="btn-irregular" style="flex:1">Confirm</button>
+        <button id="cancelIrregularBtn" class="btn-cancel" style="flex:1">Cancel</button>
       </div>
     </div>
   </div>
@@ -175,10 +192,8 @@ function renderTables(){
       moveBtn.onclick = ()=>{
         const newDesc = prompt('Move to which Table Description?');
         if(!newDesc) return;
-        // remove tag from current table
         table.orders = table.orders.filter(o => o.orderTagId !== tag.orderTagId);
         if(table.orders.length === 0) posData.openOrders = posData.openOrders.filter(t=>t.tableId!==table.tableId);
-        // find/create destination
         let target = posData.openOrders.find(t => t.tableDescription === newDesc);
         if(!target){
           target = { tableId: uid(), tableDescription:newDesc, status:'occupied', createdAt:new Date().toISOString(), orders:[] };
@@ -202,38 +217,12 @@ function renderTables(){
       payBtn.textContent='Pay';
       payBtn.onclick = ()=>openPayPopup(table,tag);
 
-      const irregularBtn = document.createElement('button');
-irregularBtn.style.background = 'black';
-irregularBtn.style.color = 'white';
-irregularBtn.style.border = 'none';
-irregularBtn.style.padding = '5px 8px';
-irregularBtn.style.borderRadius = '4px';
-irregularBtn.style.cursor = 'pointer';
-irregularBtn.textContent = 'Irregular';
-irregularBtn.onclick = () => {
-  const choice = prompt('Select option: Debt / Cooking mistake / Other');
-  if (!choice) return;
-  const type = choice.trim().toLowerCase();
-  let details = {};
-  if (type === 'debt') {
-    details.type = 'Debt';
-    details.description = prompt('Enter debt description:');
-    details.amount = prompt('Enter debt amount:');
-  } else if (type === 'cooking mistake') {
-    details.type = 'Cooking mistake';
-  } else if (type === 'other') {
-    details.type = 'Other';
-    details.description = prompt('Enter description:');
-  } else {
-    alert('Invalid option');
-    return;
-  }
-  posData.irregularOrders.push({ ...tag, tableDescription: table.tableDescription, irregularInfo: details });
-  table.orders = table.orders.filter(o => o.orderTagId !== tag.orderTagId);
-  if (table.orders.length === 0) posData.openOrders = posData.openOrders.filter(t => t.tableId !== table.tableId);
-  renderTables(); updateSnapshot();
-};
-btns.append(moveBtn, irregularBtn, cancelBtn, payBtn);
+      const irrBtn = document.createElement('button');
+      irrBtn.className='btn-irregular';
+      irrBtn.textContent='Irregular';
+      irrBtn.onclick = ()=>openIrregularPopup(table,tag);
+
+      btns.append(moveBtn,cancelBtn,payBtn,irrBtn);
       head.append(span,btns);
       tbox.appendChild(head);
 
@@ -279,12 +268,47 @@ $('confirmPaymentBtn').onclick=()=>{
           paymentMethod: $('paymentMethodSelect').value
         });
       });
-
   table.orders = table.orders.filter(o=>o.orderTagId!==tag.orderTagId);
   if(table.orders.length===0) posData.openOrders = posData.openOrders.filter(t=>t.tableId!==table.tableId);
-
   payPopup.style.display='none';
   payContext=null;
+  renderTables(); updateSnapshot();
+};
+
+let irregularContext=null;
+const irregularPopup=$('irregularPopup');
+const irregInputs=$('irregInputs');
+
+function openIrregularPopup(table,tag){
+  irregularContext={table,tag,type:'',extra:''};
+  irregInputs.innerHTML='';
+  irregularPopup.style.display='flex';
+}
+
+document.querySelectorAll('.irregOption').forEach(btn=>{
+  btn.onclick=()=>{
+    irregularContext.type=btn.dataset.type;
+    irregInputs.innerHTML='';
+    if(btn.dataset.type==='Debt'){
+      irregInputs.innerHTML='<input id="irregDesc" placeholder="Description"><input type="number" id="irregAmount" placeholder="Amount">';
+    } else if(btn.dataset.type==='Other'){
+      irregInputs.innerHTML='<input id="irregDesc" placeholder="Description">';
+    }
+  };
+});
+
+$('cancelIrregularBtn').onclick=()=>{irregularPopup.style.display='none'; irregularContext=null;};
+$('confirmIrregularBtn').onclick=()=>{
+  if(!irregularContext) return;
+  const {table,tag,type}=irregularContext;
+  let extra={};
+  if(type==='Debt') extra={description:$('#irregDesc').value, amount:$('#irregAmount').value};
+  else if(type==='Other') extra={description:$('#irregDesc').value};
+  posData.irregularOrders.push({...tag, irregularType:type, extra});
+  table.orders = table.orders.filter(o=>o.orderTagId!==tag.orderTagId);
+  if(table.orders.length===0) posData.openOrders = posData.openOrders.filter(t=>t.tableId!==table.tableId);
+  irregularPopup.style.display='none';
+  irregularContext=null;
   renderTables(); updateSnapshot();
 };
 
