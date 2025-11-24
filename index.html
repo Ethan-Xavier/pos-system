@@ -239,7 +239,15 @@ $('cancelPaymentBtn').onclick=()=>{payPopup.style.display='none';payContext=null
 $('confirmPaymentBtn').onclick=()=>{
   if(!payContext) return;
   const {table,tag}=payContext;
-  posData.closedOrders.push(tag.items.map(i=>({ item:i.item, qty:i.qty, price:i.price, timestampCreated:i.timestampCreated })) );
+  tag.items.forEach(i => {
+        posData.closedOrders.push({
+          item: i.item,
+          qty: i.qty,
+          price: i.price,
+          timestampCreated: i.timestampCreated,
+          paymentMethod: $('paymentMethodSelect').value
+        });
+      });
 
   table.orders = table.orders.filter(o=>o.orderTagId!==tag.orderTagId);
   if(table.orders.length===0) posData.openOrders = posData.openOrders.filter(t=>t.tableId!==table.tableId);
