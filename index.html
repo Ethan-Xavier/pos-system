@@ -92,7 +92,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const posData = { openOrders: [], closedOrders: [] };
+const posData = { openOrders: [], closedOrders: [], irregularOrders: [] };
 
 const MENU = {
   Food: [{name:"Burger", price:5},{name:"Pizza", price:8},{name:"Salad", price:4},{name:"Pasta", price:7}],
@@ -202,7 +202,38 @@ function renderTables(){
       payBtn.textContent='Pay';
       payBtn.onclick = ()=>openPayPopup(table,tag);
 
-      btns.append(moveBtn,cancelBtn,payBtn);
+      const irregularBtn = document.createElement('button');
+irregularBtn.style.background = 'black';
+irregularBtn.style.color = 'white';
+irregularBtn.style.border = 'none';
+irregularBtn.style.padding = '5px 8px';
+irregularBtn.style.borderRadius = '4px';
+irregularBtn.style.cursor = 'pointer';
+irregularBtn.textContent = 'Irregular';
+irregularBtn.onclick = () => {
+  const choice = prompt('Select option: Debt / Cooking mistake / Other');
+  if (!choice) return;
+  const type = choice.trim().toLowerCase();
+  let details = {};
+  if (type === 'debt') {
+    details.type = 'Debt';
+    details.description = prompt('Enter debt description:');
+    details.amount = prompt('Enter debt amount:');
+  } else if (type === 'cooking mistake') {
+    details.type = 'Cooking mistake';
+  } else if (type === 'other') {
+    details.type = 'Other';
+    details.description = prompt('Enter description:');
+  } else {
+    alert('Invalid option');
+    return;
+  }
+  posData.irregularOrders.push({ ...tag, tableDescription: table.tableDescription, irregularInfo: details });
+  table.orders = table.orders.filter(o => o.orderTagId !== tag.orderTagId);
+  if (table.orders.length === 0) posData.openOrders = posData.openOrders.filter(t => t.tableId !== table.tableId);
+  renderTables(); updateSnapshot();
+};
+btns.append(moveBtn, irregularBtn, cancelBtn, payBtn);
       head.append(span,btns);
       tbox.appendChild(head);
 
