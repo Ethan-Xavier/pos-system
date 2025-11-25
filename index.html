@@ -1,270 +1,105 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>POS — No Firebase Full Version Editable</title>
-
-<style>
-body { font-family: system-ui, Arial; padding: 24px; max-width:1000px; margin:0 auto; }
-label{display:block;margin-top:10px;font-weight:600}
-input, select, button { padding:8px; font-size:14px; width:100%; box-sizing:border-box }
-.row{display:flex;gap:8px}
-.row > *{flex:1}
-.card{border:1px solid #eee;padding:12px;border-radius:8px;margin-top:12px}
-pre{background:#f7f7f7;padding:12px;border-radius:6px;overflow:auto;max-height:240px}
-
-.table-box{border:1px solid #aaa;border-radius:8px;padding:12px;margin-bottom:12px;background:#fdfdfd;}
-.table-title{font-weight:700;font-size:16px;margin-bottom:6px;color:#333;cursor:pointer;}
-.order-tag-box{border:1px solid #bbb;border-radius:6px;padding:6px;margin:6px 0;background:#eef;}
-.tag-header{font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
-.tag-buttons{display:flex;gap:6px}
-.order-box{border:1px solid #ccc;border-radius:6px;padding:6px;margin:4px 0;background:#f7f7ff;cursor:pointer}
-.order-total{margin-top:4px;font-weight:600;text-align:right}
-.btn-cancel{background:#d9534f;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
-.btn-pay{background:#5cb85c;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
-.btn-move{background:#0275d8;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
-.btn-irregular{background:#000;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
-
-#payPopup, #irregularPopup{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999}
-#payPopupContent, #irregularPopupContent{background:#fff;padding:18px;border-radius:8px;width:320px;max-width:90%}
-#payPopupContent h3, #irregularPopupContent h3{margin-top:0}
-#irregularPopupContent button.option-btn{margin:4px;padding:6px 10px;cursor:pointer}
-#irregularPopupContent input{margin-top:6px;}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>POS — Firebase Integrated</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <h2>POS — Firebase Integrated</h2>
 
-<h2>POS — No Firebase Full Version Editable</h2>
+  <div class="card">
+    <label for="tableDesc">Table Description (required)</label>
+    <input id="tableDesc" placeholder="Table 1 / João - Janela" />
 
-<div class="card">
-  <label for="tableDesc">Table Description (required)</label>
-  <input id="tableDesc" placeholder="Table 1 / John - Table / Window seat" />
-  <label for="orderTag">Order Tag</label>
-  <input id="orderTag" placeholder="Single Order" value="Single Order" />
+    <label for="orderTag">Order Tag</label>
+    <input id="orderTag" placeholder="Single Order" value="Single Order" />
 
-  <div class="row">
-    <div>
-      <label for="section">Section</label>
-      <select id="section">
-        <option value="Food">Food</option>
-        <option value="Drinks">Drinks</option>
-      </select>
+    <div class="row">
+      <div>
+        <label for="section">Section</label>
+        <select id="section"></select>
+      </div>
+      <div>
+        <label for="item">Item</label>
+        <select id="item"></select>
+      </div>
+      <div style="max-width:110px">
+        <label for="qty">Qty</label>
+        <input id="qty" type="number" min="1" value="1" />
+      </div>
     </div>
-    <div>
-      <label for="item">Item</label>
-      <select id="item"></select>
-    </div>
-    <div style="max-width:110px">
-      <label for="qty">Qty</label>
-      <input id="qty" type="number" min="1" value="1" />
-    </div>
+
+    <button id="placeOrderBtn">Place order</button>
+    <div id="menuStatus" class="muted"></div>
   </div>
 
-  <button id="placeOrderBtn">Place order</button>
-</div>
-
-<div class="card">
-  <h3>Tables & Orders</h3>
-  <div id="tables"></div>
-</div>
-
-<div class="card">
-  <h3>Debts</h3>
-  <div id="debts"></div>
-</div>
-
-<div class="card">
-  <h3>posData (local snapshot)</h3>
-  <pre id="snapshot"></pre>
-</div>
-
-<!-- Pay Popup -->
-<div id="payPopup">
-  <div id="payPopupContent">
-    <h3>Confirm Payment</h3>
-    <div id="payDetails"></div>
-    <label for="paymentMethodSelect">Payment Method</label>
-    <select id="paymentMethodSelect">
-      <option value="Cash">Cash</option>
-      <option value="Card">Card</option>
-      <option value="Mobile">Mobile</option>
-    </select>
-    <div style="margin-top:10px;display:flex;gap:8px">
-      <button id="confirmPaymentBtn" class="btn-pay" style="flex:1">Confirm</button>
-      <button id="cancelPaymentBtn" class="btn-cancel" style="flex:1">Cancel</button>
-    </div>
+  <div class="card">
+    <h3>Tables & Orders</h3>
+    <div id="tables"></div>
   </div>
-</div>
 
-<!-- Irregular Popup -->
-<div id="irregularPopup">
-  <div id="irregularPopupContent">
-    <h3>Select Irregular Order Type</h3>
-    <div id="irregularOptions">
-      <button class="option-btn" data-type="Debt">Debt</button>
-      <button class="option-btn" data-type="Cooking mistake">Cooking mistake</button>
-      <button class="option-btn" data-type="Other">Other</button>
-    </div>
-    <div id="irregularInputDiv" style="display:none;">
-      <label for="irregularDesc">Description:</label>
-      <input id="irregularDesc" placeholder="Enter description..." />
-      <div style="margin-top:8px;display:flex;gap:8px;">
-        <button id="irregularConfirmBtn" style="flex:1;">Confirm</button>
-        <button id="irregularCancelBtn" style="flex:1;">Cancel</button>
+  <div class="card">
+    <h3>Debts</h3>
+    <div id="debts"></div>
+  </div>
+
+  <div class="card">
+    <h3>posData (local snapshot)</h3>
+    <pre id="snapshot"></pre>
+  </div>
+
+  <!-- Price picker popup (for multi-price items) -->
+  <div id="pricePicker" class="overlay" style="display:none">
+    <div class="popup">
+      <h3>Escolha o preço</h3>
+      <div id="priceOptions"></div>
+      <div style="margin-top:10px; text-align:right">
+        <button id="priceCancelBtn" class="btn-cancel">Cancelar</button>
       </div>
     </div>
   </div>
-</div>
 
-<script>
-const $ = id => document.getElementById(id);
-const posData = { openOrders: [], closedOrders: [], irregularOrders: [] };
+  <!-- Payment Popup -->
+  <div id="payPopup" class="overlay" style="display:none">
+    <div class="popup">
+      <h3>Confirm Payment</h3>
+      <div id="payDetails"></div>
+      <label for="paymentMethodSelect">Payment Method</label>
+      <select id="paymentMethodSelect">
+        <option value="Cash">Cash</option>
+        <option value="Card">Card</option>
+        <option value="Mobile">Mobile</option>
+      </select>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="confirmPaymentBtn" class="btn-pay" style="flex:1">Confirm</button>
+        <button id="cancelPaymentBtn" class="btn-cancel" style="flex:1">Cancel</button>
+      </div>
+    </div>
+  </div>
 
-const MENU = {
-  Food: [{name:"Burger", price:5},{name:"Pizza", price:8},{name:"Salad", price:4},{name:"Pasta", price:7}],
-  Drinks: [{name:"Water", price:1},{name:"Soda", price:2},{name:"Coffee", price:3},{name:"Juice", price:3}]
-};
+  <!-- Irregular popup -->
+  <div id="irregularPopup" class="overlay" style="display:none">
+    <div class="popup">
+      <h3>Irregular Order</h3>
+      <div id="irregularOptions">
+        <button class="option-btn" data-type="Debt">Debt</button>
+        <button class="option-btn" data-type="Cooking mistake">Cooking mistake</button>
+        <button class="option-btn" data-type="Other">Other</button>
+      </div>
+      <div id="irregularInputDiv" style="display:none;margin-top:8px;">
+        <label for="irregularDesc">Description</label>
+        <input id="irregularDesc" placeholder="Descrição..." />
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="irregularConfirmBtn" class="btn-irregular" style="flex:1">Confirm</button>
+        <button id="irregularCancelBtn" class="btn-cancel" style="flex:1">Cancel</button>
+      </div>
+    </div>
+  </div>
 
-function uid(){ return "ID-" + Math.random().toString(36).slice(2,9); }
-
-function populateItems(section){
-  const sel = $('item'); sel.innerHTML='';
-  MENU[section].forEach(it => { let o=document.createElement('option'); o.value=it.name; o.textContent=`${it.name} - $${it.price}`; sel.appendChild(o); });
-}
-populateItems($('section').value);
-$('section').addEventListener('change', e=>populateItems(e.target.value));
-
-function getItemPrice(section,item){ return MENU[section].find(i=>i.name===item)?.price || 0; }
-function updateSnapshot(){ $('snapshot').textContent = JSON.stringify(posData,null,2); }
-
-function placeOrder({tableDescription,orderTag,section,item,qty}){
-  let table = posData.openOrders.find(t=>t.tableDescription===tableDescription);
-  const timestamp=new Date().toISOString();
-  if(!table){ table={tableId:uid(),tableDescription,status:'occupied',createdAt:timestamp,orders:[]}; posData.openOrders.push(table);}
-  let tag=table.orders.find(x=>x.orderTag===orderTag);
-  if(!tag){ tag={orderTagId:uid(),orderTag,items:[]}; table.orders.push(tag);}
-  let existing=tag.items.find(i=>i.item===item);
-  if(existing) existing.qty+=Number(qty); else tag.items.push({ item, qty:Number(qty), price:getItemPrice(section,item), timestampCreated:timestamp });
-  renderTables(); updateSnapshot();
-}
-
-// PAY POPUP
-let payContext=null;
-const payPopup=$('payPopup'), payDetails=$('payDetails');
-function openPayPopup(table,tag,fromDebt=null){
-  payContext={table,tag,fromDebt};
-  payDetails.innerHTML = tag.items.map(i=>`${i.item} x ${i.qty}`).join('<br>');
-  payPopup.style.display='flex';
-}
-$('cancelPaymentBtn').onclick=()=>{payPopup.style.display='none';payContext=null;};
-$('confirmPaymentBtn').onclick=()=>{
-  if(!payContext) return;
-  const {table,tag,fromDebt}=payContext;
-  const method=$('paymentMethodSelect').value;
-  tag.items.forEach(i=>{
-    posData.closedOrders.push({ item:i.item, qty:i.qty, price:i.price, timestampCreated:i.timestampCreated, paymentMethod:method });
-  });
-  if(fromDebt){ posData.irregularOrders=posData.irregularOrders.filter(o=>o.orderTagId!==tag.orderTagId); }
-  else{ table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId); if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId); }
-  payPopup.style.display='none'; payContext=null; renderTables(); updateSnapshot();
-};
-
-// IRREGULAR ORDERS
-const irregularPopup=$('irregularPopup'), irregularInputDiv=$('irregularInputDiv'), irregularDesc=$('irregularDesc');
-let irregularContext=null;
-
-function addIrregularButton(btns,table,tag){
-  const irrBtn=document.createElement('button');
-  irrBtn.className='btn-irregular'; irrBtn.textContent='Irregular';
-  irrBtn.onclick=()=>{ irregularContext={table,tag}; irregularInputDiv.style.display='none'; irregularDesc.value=''; irregularPopup.style.display='flex'; };
-  btns.appendChild(irrBtn);
-}
-
-document.querySelectorAll('#irregularOptions .option-btn').forEach(b=>{
-  b.onclick=()=>{
-    document.querySelectorAll('#irregularOptions .option-btn').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    const type=b.dataset.type;
-    if(type==='Debt'||type==='Other'){ irregularInputDiv.style.display='block'; }
-    else{ storeIrregular(type,''); irregularPopup.style.display='none'; }
-  };
-});
-
-$('irregularConfirmBtn').onclick=()=>{ const type=document.querySelector('#irregularOptions .option-btn.active')?.dataset.type || 'Debt'; storeIrregular(type, irregularDesc.value.trim()); irregularPopup.style.display='none'; };
-$('irregularCancelBtn').onclick=()=>{ irregularPopup.style.display='none'; irregularContext=null; };
-
-function storeIrregular(type,desc){
-  if(!irregularContext) return;
-  const {table,tag} = irregularContext;
-  const total = tag.items.reduce((s,i)=>s+i.qty*i.price,0);
-  posData.irregularOrders.push({ orderTagId:tag.orderTagId, tableDescription:table.tableDescription, orderTag:tag.orderTag, items:tag.items, type, description:desc, total });
-  table.orders = table.orders.filter(o=>o.orderTagId!==tag.orderTagId);
-  if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId);
-  renderTables(); updateSnapshot();
-}
-
-// RENDER TABLES + DEBTS + EDITABLE TABLE/ORDER NAMES
-function renderTables(){
-  const container=$('tables'); container.innerHTML='';
-  const debtsDiv=$('debts'); debtsDiv.innerHTML='';
-
-  posData.openOrders.forEach(table=>{
-    const box=document.createElement('div'); box.className='table-box';
-    const title=document.createElement('div'); title.className='table-title'; title.textContent=table.tableDescription;
-    title.onclick=()=>{
-      const newDesc=prompt('Edit Table Description:',table.tableDescription); if(newDesc){ table.tableDescription=newDesc; renderTables(); updateSnapshot(); }
-    };
-    box.appendChild(title);
-
-    table.orders.forEach(tag=>{
-      const tbox=document.createElement('div'); tbox.className='order-tag-box';
-      const head=document.createElement('div'); head.className='tag-header';
-      const span=document.createElement('span'); span.textContent=tag.orderTag;
-      span.onclick=()=>{
-        const newTag=prompt('Edit Order Tag:',tag.orderTag); if(newTag){ tag.orderTag=newTag; renderTables(); updateSnapshot(); }
-      };
-
-      const btns=document.createElement('div'); btns.className='tag-buttons';
-      const moveBtn=document.createElement('button'); moveBtn.className='btn-move'; moveBtn.textContent='Move';
-      moveBtn.onclick=()=>{ const newDesc=prompt('Move to which Table Description?'); if(!newDesc)return; table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId); if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId); let target=posData.openOrders.find(t=>t.tableDescription===newDesc); if(!target){ target={tableId:uid(),tableDescription:newDesc,status:'occupied',createdAt:new Date().toISOString(),orders:[]}; posData.openOrders.push(target); } target.orders.push(tag); renderTables(); updateSnapshot(); };
-      const cancelBtn=document.createElement('button'); cancelBtn.className='btn-cancel'; cancelBtn.textContent='Cancel'; cancelBtn.onclick=()=>{ table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId); if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId); renderTables(); updateSnapshot(); };
-      const payBtn=document.createElement('button'); payBtn.className='btn-pay'; payBtn.textContent='Pay'; payBtn.onclick=()=>openPayPopup(table,tag,null);
-      btns.append(moveBtn,cancelBtn,payBtn); addIrregularButton(btns,table,tag); head.append(span,btns); tbox.appendChild(head);
-
-      tag.items.forEach(i=>{
-        const d=document.createElement('div'); d.className='order-box'; d.textContent=`${i.item} x ${i.qty} - $${i.price}`;
-        d.onclick=()=>{
-          const newQty=prompt(`Adjust quantity for ${i.item} (0 to remove):`, i.qty); if(newQty===null)return;
-          const n=Number(newQty); if(n<=0) tag.items=tag.items.filter(it=>it.item!==i.item); else i.qty=n;
-          if(tag.items.length===0) table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId);
-          if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId);
-          renderTables(); updateSnapshot();
-        };
-        tbox.appendChild(d);
-      });
-
-      const total=tag.items.reduce((s,i)=>s+i.qty*i.price,0); const tot=document.createElement('div'); tot.className='order-total'; tot.textContent=`Total: $${total}`; tbox.appendChild(tot);
-      box.appendChild(tbox);
-    });
-    container.appendChild(box);
-  });
-
-  posData.irregularOrders.filter(o=>o.type==='Debt').forEach(debt=>{
-    const dbox=document.createElement('div'); dbox.className='order-tag-box';
-    const desc=document.createElement('div'); desc.textContent=`${debt.description} - $${debt.total}`;
-    const payBtn=document.createElement('button'); payBtn.className='btn-pay'; payBtn.textContent='Paid'; payBtn.onclick=()=>openPayPopup(null,debt,true);
-    dbox.append(desc,payBtn); debtsDiv.appendChild(dbox);
-  });
-}
-
-$('placeOrderBtn').onclick=()=>{
-  const t=$('tableDesc').value.trim(); if(!t){alert('Table Description required');return;}
-  placeOrder({ tableDescription:t, orderTag:$('orderTag').value.trim(), section:$('section').value, item:$('item').value, qty:$('qty').value });
-};
-
-updateSnapshot();
-renderTables();
-</script>
+  <script type="module" src="js/menu-loader.js"></script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
