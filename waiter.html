@@ -92,6 +92,34 @@
   </div>
 </div>
 
+<!-- Add Item Popup -->
+<div id="addItemPopup">
+  <div id="addItemPopupContent">
+    <h3>Add Item to Order</h3>
+    <div class="row">
+      <div>
+        <label for="addSection">Section</label>
+        <select id="addSection">
+          <option value="Food">Food</option>
+          <option value="Drinks">Drinks</option>
+        </select>
+      </div>
+      <div>
+        <label for="addItem">Item</label>
+        <select id="addItem"></select>
+      </div>
+      <div style="max-width:110px">
+        <label for="addQty">Qty</label>
+        <input id="addQty" type="number" min="1" value="1" />
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button id="addItemConfirmBtn" class="btn-pay" style="flex:1">Add</button>
+      <button id="addItemCancelBtn" class="btn-cancel" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script src="utils.js"></script>
 <script src="pos.js"></script>
 </body>
