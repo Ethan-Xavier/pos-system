@@ -5,8 +5,8 @@ const MENU = {
   Drinks: [{name:"Water", price:1},{name:"Soda", price:2},{name:"Coffee", price:3},{name:"Juice", price:3}]
 };
 
-function populateItems(section){
-  const sel=$('item'); sel.innerHTML='';
+function populateItems(section, selectId='item'){
+  const sel=$(selectId); sel.innerHTML='';
   MENU[section].forEach(it=>{ 
     let o=document.createElement('option'); 
     o.value=it.name; 
@@ -40,7 +40,7 @@ function openPayPopup(table,tag,fromDebt=null){
   payPopup.style.display='flex';
 }
 $('cancelPaymentBtn').onclick=()=>{payPopup.style.display='none';payContext=null;};
-$('confirmPaymentBtn').onclick=()=>{
+$('confirmPaymentBtn').onclick=()=>{ 
   if(!payContext) return;
   const {table,tag,fromDebt}=payContext;
   const method=$('paymentMethodSelect').value;
@@ -59,6 +59,38 @@ function addIrregularButton(btns,table,tag){
   irrBtn.onclick=()=>{ irregularContext={table,tag}; irregularInputDiv.style.display='none'; irregularDesc.value=''; irregularPopup.style.display='flex'; };
   btns.appendChild(irrBtn);
 }
+
+// ADD ITEM POPUP
+const addItemPopup=$('addItemPopup'), addItemSection=$('addSection'), addItemItem=$('addItem'), addItemQty=$('addQty');
+let addItemContext=null;
+
+function addAddItemButton(btns,table,tag){
+  const addBtn=document.createElement('button');
+  addBtn.className='btn-pay';
+  addBtn.textContent='Add Item';
+  addBtn.onclick=()=>{
+    addItemContext={table,tag};
+    populateItems(addItemSection.value,'addItem');
+    addItemQty.value=1;
+    addItemPopup.style.display='flex';
+  };
+  btns.appendChild(addBtn);
+}
+
+addItemSection.addEventListener('change', e=>populateItems(e.target.value,'addItem'));
+$('addItemCancelBtn').onclick=()=>{ addItemPopup.style.display='none'; addItemContext=null; };
+$('addItemConfirmBtn').onclick=()=>{
+  if(!addItemContext) return;
+  const {table,tag}=addItemContext;
+  const section=addItemSection.value, item=addItemItem.value, qty=Number(addItemQty.value);
+  if(qty<=0){ alert('Quantity must be at least 1'); return; }
+  let existing=tag.items.find(i=>i.item===item);
+  if(existing) existing.qty+=qty; else tag.items.push({ item, qty, price:getItemPrice(section,item), timestampCreated:new Date().toISOString() });
+  addItemPopup.style.display='none'; addItemContext=null;
+  renderTables(); updateSnapshot();
+}
+
+// IRREGULAR ORDER LOGIC
 document.querySelectorAll('#irregularOptions .option-btn').forEach(b=>{
   b.onclick=()=>{
     document.querySelectorAll('#irregularOptions .option-btn').forEach(x=>x.classList.remove('active'));
@@ -102,7 +134,12 @@ function renderTables(){
       moveBtn.onclick=()=>{ const newDesc=prompt('Move to which Table Description?'); if(!newDesc)return; table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId); if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId); let target=posData.openOrders.find(t=>t.tableDescription===newDesc); if(!target){ target={tableId:uid(),tableDescription:newDesc,status:'occupied',createdAt:new Date().toISOString(),orders:[]}; posData.openOrders.push(target); } target.orders.push(tag); renderTables(); updateSnapshot(); };
       const cancelBtn=document.createElement('button'); cancelBtn.className='btn-cancel'; cancelBtn.textContent='Cancel'; cancelBtn.onclick=()=>{ table.orders=table.orders.filter(o=>o.orderTagId!==tag.orderTagId); if(table.orders.length===0) posData.openOrders=posData.openOrders.filter(t=>t.tableId!==table.tableId); renderTables(); updateSnapshot(); };
       const payBtn=document.createElement('button'); payBtn.className='btn-pay'; payBtn.textContent='Pay'; payBtn.onclick=()=>openPayPopup(table,tag,null);
-      btns.append(moveBtn,cancelBtn,payBtn); addIrregularButton(btns,table,tag); head.append(span,btns); tbox.appendChild(head);
+      
+      btns.append(moveBtn,cancelBtn,payBtn);
+      addIrregularButton(btns,table,tag);
+      addAddItemButton(btns,table,tag);
+
+      head.append(span,btns); tbox.appendChild(head);
 
       tag.items.forEach(i=>{
         const d=document.createElement('div'); d.className='order-box'; d.textContent=`${i.item} x ${i.qty} - ${formatPrice(i.price)}`;
