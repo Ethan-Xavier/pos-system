@@ -17,9 +17,10 @@ pre{background:#f7f7f7;padding:12px;border-radius:6px;overflow:auto;max-height:2
 .btn-pay{background:#5cb85c;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
 .btn-move{background:#0275d8;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
 .btn-irregular{background:#000;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer}
+.btn-additem{background:#f0ad4e;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer} /* New Add Item button */
 
-#payPopup, #irregularPopup{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999}
-#payPopupContent, #irregularPopupContent{background:#fff;padding:18px;border-radius:8px;width:320px;max-width:90%}
-#payPopupContent h3, #irregularPopupContent h3{margin-top:0}
+#payPopup, #irregularPopup, #addItemPopup{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999}
+#payPopupContent, #irregularPopupContent, #addItemPopupContent{background:#fff;padding:18px;border-radius:8px;width:320px;max-width:90%}
+#payPopupContent h3, #irregularPopupContent h3, #addItemPopupContent h3{margin-top:0}
 #irregularPopupContent button.option-btn{margin:4px;padding:6px 10px;cursor:pointer}
 #irregularPopupContent input{margin-top:6px;}
