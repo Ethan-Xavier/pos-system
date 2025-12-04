@@ -287,7 +287,3 @@ $('placeOrderBtn').onclick=()=>{
 
 updateSnapshot();
 renderTables();
-lue.trim(); if(!t){alert('Table Description required');return;} placeOrder({ tableDescription:t, orderTag:$('orderTag').value.trim(), section:$('section').value, item:$('item').value, qty:$('qty').value }); };
-
-updateSnapshot();
-renderTables();
