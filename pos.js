@@ -42,14 +42,14 @@ function openPayPopup(table,tag,fromDebt=null){
   payPopup.style.display='flex';
 }
 
-$('cancelPaymentBtn').onclick=()=>{payPopup.style.display='none';payContext=null;};
+$('cancelPaymentBtn').onclick=()=>{ payPopup.style.display='none'; payContext=null; };
 
 $('confirmPaymentBtn').onclick=()=>{ 
   if(!payContext) return;
   const {table,tag,fromDebt}=payContext;
   const method=$('paymentMethodSelect').value;
 
-  // ✅ SAVE TO CLOSED ORDERS (FIXED)
+  // Save items to closedOrders
   tag.items.forEach(i=>{
     posData.closedOrders.push({
       item: i.item,
@@ -59,7 +59,7 @@ $('confirmPaymentBtn').onclick=()=>{
     });
   });
 
-  // ✅ REMOVE DEBT AFTER PAYING (FIXED)
+  // Remove debt if paying debt
   if(fromDebt){
     posData.irregularOrders = posData.irregularOrders.filter(o => o.orderTagId !== tag.orderTagId);
   } else {
@@ -148,7 +148,7 @@ function storeIrregular(type,desc){
   const {table,tag}=irregularContext;
   const total=tag.items.reduce((s,i)=>s+i.qty*i.price,0);
 
-  // ✅ STORE FULL ITEM DATA
+  // Store full item data
   posData.irregularOrders.push({
     orderTagId: tag.orderTagId,
     tableDescription: table.tableDescription,
@@ -252,7 +252,7 @@ function renderTables(){
     container.appendChild(box);
   });
 
-  // ✅ DISPLAY FULL DEBT DETAILS
+  // Display debts with full item info
   posData.irregularOrders.filter(o=>o.type==='Debt').forEach(debt=>{
     const dbox=document.createElement('div'); dbox.className='order-tag-box';
 
