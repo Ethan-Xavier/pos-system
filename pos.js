@@ -28,38 +28,58 @@ function updateSnapshot(){ $('snapshot').textContent = JSON.stringify(posData,nu
 
 // Place order function
 function placeOrder({tableDescription,orderTag,section,item,qty}){
+  const timestamp = new Date().toISOString();
   let table=posData.openOrders.find(t=>t.tableDescription===tableDescription);
-  const timestamp=new Date().toISOString();
-  if(!table){ table={tableId:uid(),tableDescription,status:'occupied',createdAt:timestamp,orders:[]}; posData.openOrders.push(table);}
+  if(!table){ 
+    table={tableId:uid(),tableDescription,status:'occupied',createdAt:timestamp,orders:[]}; 
+    posData.openOrders.push(table);
+  }
   let tag=table.orders.find(x=>x.orderTag===orderTag);
-  if(!tag){ tag={orderTagId:uid(),orderTag,items:[]}; table.orders.push(tag);}
+  if(!tag){ tag={orderTagId:uid(),orderTag,items:[],createdAt:timestamp}; table.orders.push(tag);}
   let existing=tag.items.find(i=>i.item===item);
   if(existing) existing.qty+=Number(qty);
   else tag.items.push({ item, qty:Number(qty), price:getItemPrice(section,item), timestampCreated:timestamp });
   renderTables(); updateSnapshot();
 }
 
-/* --- Popup Management --- */
-// Pay, Irregular, Add Item popups all controlled via JS variables and onclick events.
-// Functions: openPayPopup(), storeIrregular(), addAddItemButton(), addIrregularButton()
-
 /* --- Render Function --- */
-// renderTables() builds the UI for openOrders and irregularOrders
-// Key elements for modification:
-// - table.orders for each table
-// - tag.items for each order tag
-// - Buttons: Pay, Cancel, Move, Add Item, Irregular
-// - Click on items or titles allows editing quantity, table description, or tag
+function renderTables(){
+  const container=$('tables'); container.innerHTML='';
 
-/* --- Event Bindings --- */
-// - 'placeOrderBtn' triggers placeOrder() from inputs
-// - Section select dropdown triggers populateItems()
-// - Popups have confirm/cancel buttons attached
+  // Sort tables: newest first
+  const sortedTables = posData.openOrders.slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
 
-/* Notes:
-- Any new feature should follow existing posData structure.
-- Changes to MENU, popups, or renderTables should respect existing DOM structure.
-- IrregularOrders are stored separately in posData.irregularOrders.
-- Closed orders are stored in posData.closedOrders.
-- All interactions ultimately call renderTables() + updateSnapshot() to refresh UI.
+  sortedTables.forEach(table=>{
+    const tableDiv=document.createElement('div'); 
+    tableDiv.className='table-box';
+
+    // Table title with timestamp
+    const tableTitle=document.createElement('div');
+    tableTitle.className='table-title';
+    tableTitle.textContent=`${table.tableDescription} (${new Date(table.createdAt).toLocaleTimeString()})`;
+    tableDiv.appendChild(tableTitle);
+
+    table.orders.forEach(tag=>{
+      const tagBox=document.createElement('div'); tagBox.className='order-tag-box';
+      const tagHeader=document.createElement('div'); tagHeader.className='tag-header';
+      tagHeader.textContent=`${tag.orderTag} (${new Date(tag.createdAt).toLocaleTimeString()})`;
+      tagBox.appendChild(tagHeader);
+
+      tag.items.forEach(item=>{
+        const itemDiv=document.createElement('div'); itemDiv.className='order-box';
+        itemDiv.textContent=`${item.qty} x ${item.item} - ${formatPrice(item.price)}`;
+        tagBox.appendChild(itemDiv);
+      });
+
+      tableDiv.appendChild(tagBox);
+    });
+
+    container.appendChild(tableDiv);
+  });
+}
+
+/* --- Notes ---
+- Tables now sorted newest first by createdAt.
+- Table and order tag timestamps are displayed (HH:MM:SS format).
+- Future edits: any additional info can be added inside renderTables with minimal changes.
 */
