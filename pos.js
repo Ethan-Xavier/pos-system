@@ -36,7 +36,7 @@ function placeOrder({tableDescription,orderTag,section,item,qty}){
   }
   let tag=table.orders.find(x=>x.orderTag===orderTag);
   if(!tag){ tag={orderTagId:uid(),orderTag,items:[],createdAt:timestamp}; table.orders.push(tag);}
-  let existing=tag.items.find(i=>i.item===item);
+  let existing=tag.items.find(i=>i.item);
   if(existing) existing.qty+=Number(qty);
   else tag.items.push({ item, qty:Number(qty), price:getItemPrice(section,item), timestampCreated:timestamp });
   renderTables(); updateSnapshot();
