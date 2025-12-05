@@ -42,6 +42,9 @@ function openPayPopup(table,tag,fromDebt=null){
   payPopup.style.display='flex';
 }
 
+// Close popup buttons
+$('closePayPopup').onclick = () => { payPopup.style.display='none'; payContext=null; };
+
 $('cancelPaymentBtn').onclick=()=>{ payPopup.style.display='none'; payContext=null; };
 
 $('confirmPaymentBtn').onclick=()=>{ 
@@ -109,6 +112,7 @@ function addAddItemButton(btns,table,tag){
 
 addItemSection.addEventListener('change', e=>populateItems(e.target.value,'addItem'));
 $('addItemCancelBtn').onclick=()=>{ addItemPopup.style.display='none'; addItemContext=null; };
+$('closeAddItemPopup').onclick = ()=>{ addItemPopup.style.display='none'; addItemContext=null; };
 
 $('addItemConfirmBtn').onclick=()=>{
   if(!addItemContext) return;
@@ -128,6 +132,22 @@ document.querySelectorAll('#irregularOptions .option-btn').forEach(b=>{
   b.onclick=()=>{
     document.querySelectorAll('#irregularOptions .option-btn').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
+    const type=b.dataset.type;
+    if(type==='Other'){
+      // copy to closedOrders
+      if(irregularContext){
+        const {tag}=irregularContext;
+        tag.items.forEach(i=>{
+          posData.closedOrders.push({
+            item: i.item,
+            qty: i.qty,
+            price: i.price,
+            timestampCreated: i.timestampCreated,
+            paymentMethod: 'Other'
+          });
+        });
+      }
+    }
     irregularInputDiv.style.display='block';
   };
 });
@@ -139,6 +159,7 @@ $('irregularConfirmBtn').onclick=()=>{
 };
 
 $('irregularCancelBtn').onclick=()=>{ irregularPopup.style.display='none'; irregularContext=null; };
+$('closeIrregularPopup').onclick = ()=>{ irregularPopup.style.display='none'; irregularContext=null; };
 
 function storeIrregular(type,desc){
   if(!irregularContext) return;
