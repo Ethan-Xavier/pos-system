@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>POS — Waiter Platform</title>
 
+<!-- Link to main stylesheet -->
 <link rel="stylesheet" href="style.css" />
 
 </head>
@@ -12,12 +13,17 @@
 
 <h2>POS — Waiter Platform</h2>
 
+<!-- --- Main Order Card --- -->
 <div class="card">
+  <!-- Table description input (required) -->
   <label for="tableDesc">Table Description (required)</label>
   <input id="tableDesc" placeholder="Table 1 / John - Table / Window seat" />
+
+  <!-- Order tag input (optional label for grouping orders) -->
   <label for="orderTag">Order Tag</label>
   <input id="orderTag" placeholder="Single Order" value="Single Order" />
 
+  <!-- Selection row: Section, Item, Qty -->
   <div class="row">
     <div>
       <label for="section">Section</label>
@@ -36,25 +42,29 @@
     </div>
   </div>
 
+  <!-- Button to place order -->
   <button id="placeOrderBtn">Place order</button>
 </div>
 
+<!-- --- Tables & Orders Section --- -->
 <div class="card">
   <h3>Tables & Orders</h3>
   <div id="tables"></div>
 </div>
 
+<!-- --- Debts Section --- -->
 <div class="card">
   <h3>Debts</h3>
   <div id="debts"></div>
 </div>
 
+<!-- --- POS Data Snapshot (for debugging/local storage) --- -->
 <div class="card">
   <h3>posData (local snapshot)</h3>
   <pre id="snapshot"></pre>
 </div>
 
-<!-- Pay Popup -->
+<!-- --- Pay Popup --- -->
 <div id="payPopup">
   <div id="payPopupContent">
     <span class="popup-close" id="closePayPopup">&times;</span>
@@ -73,7 +83,7 @@
   </div>
 </div>
 
-<!-- Irregular Popup -->
+<!-- --- Irregular Orders Popup --- -->
 <div id="irregularPopup">
   <div id="irregularPopupContent">
     <span class="popup-close" id="closeIrregularPopup">&times;</span>
@@ -93,7 +103,7 @@
   </div>
 </div>
 
-<!-- Add Item Popup -->
+<!-- --- Add Item Popup --- -->
 <div id="addItemPopup">
   <div id="addItemPopupContent">
     <span class="popup-close" id="closeAddItemPopup">&times;</span>
@@ -122,7 +132,9 @@
   </div>
 </div>
 
+<!-- --- Scripts --- -->
 <script src="utils.js"></script>
 <script src="pos.js"></script>
 </body>
 </html>
+
