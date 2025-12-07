@@ -8,64 +8,89 @@ body {
   color: #333;
 }
 
-/* --- Layout & Cards --- */
-.card {
-  border: 1px solid #eee;
-  padding: 16px;
-  border-radius: 8px;
-  margin-top: 16px;
-  background: #fff;
+/* Headings */
+h2, h3 { margin-top:0; margin-bottom:12px; font-weight:700; }
+
+/* current waiter badge */
+#currentWaiterBadge {
+  font-weight:600;
+  margin-left:12px;
+  font-size:14px;
+  color:#0275d8;
 }
 
-.row {
-  display: flex;
-  gap: 8px;
-}
-
-.row > * {
-  flex: 1;
-}
-
-/* --- Inputs --- */
+/* --- Forms --- */
+label { display:block; margin-top:10px; font-weight:600; }
 input, select, button {
-  padding: 8px;
-  width: 100%;
-  font-size: 14px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding:8px; font-size:14px; width:100%; box-sizing:border-box;
+  border:1px solid #ccc; border-radius:6px;
 }
+input:focus, select:focus {
+  outline:none; border-color:#0275d8; box-shadow:0 0 3px rgba(2,117,216,0.5);
+}
+
+/* --- Layout --- */
+.row { display:flex; gap:8px; margin-top:8px; }
+.row > * { flex:1; }
+.card { border:1px solid #eee; padding:16px; border-radius:8px; margin-top:16px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+pre { background:#f7f7f7; padding:12px; border-radius:6px; overflow:auto; max-height:240px; }
+
+/* --- Tables & Orders --- */
+.table-box { border:1px solid #aaa; border-radius:8px; padding:12px; margin-bottom:16px; background:#fdfdfd; }
+.table-title { font-weight:700; font-size:16px; margin-bottom:8px; color:#333; cursor:default; display:flex; justify-content:space-between; align-items:center; }
+
+/* waiter name style (clickable) */
+.waiter-name { font-weight:600; color:#444; cursor:pointer; margin-left:8px; font-size:13px; padding:4px 8px; border-radius:6px; background:#f3f3f3; border:1px solid #e0e0e0; }
+.waiter-name:hover { background:#e9f2ff; border-color:#bcdfff; color:#0275d8; }
+
+/* --- Timestamp styling for tables and order tags --- */
+.table-title, .tag-header { font-size:14px; color:#666; }
+
+/* --- Individual Orders --- */
+.order-tag-box { border:1px solid #bbb; border-radius:6px; padding:8px; margin:8px 0; background:#eef; }
+.tag-header { font-weight:600; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+.tag-buttons { display:flex; gap:6px; }
+
+.order-box { border:1px solid #ccc; border-radius:6px; padding:6px; margin:4px 0; background:#f7f7ff; cursor:pointer; }
+.order-total { margin-top:6px; font-weight:600; text-align:right; }
 
 /* --- Buttons --- */
-button {
-  font-weight: 600;
-  cursor: pointer;
-}
+button { font-weight:600; cursor:pointer; transition:background 0.2s; }
+.btn-cancel { background:#d9534f; color:white; border:none; padding:6px 10px; border-radius:6px; }
+.btn-cancel:hover{background:#c9302c;}
+.btn-pay { background:#5cb85c; color:white; border:none; padding:6px 10px; border-radius:6px; }
+.btn-pay:hover{background:#4cae4c;}
+.btn-move { background:#0275d8; color:white; border:none; padding:6px 10px; border-radius:6px; }
+.btn-move:hover{background:#025aa5;}
+.btn-irregular { background:#000; color:white; border:none; padding:6px 10px; border-radius:6px; }
+.btn-irregular:hover{background:#333;}
+.btn-additem { background:#f0ad4e; color:white; border:none; padding:6px 10px; border-radius:6px; }
+.btn-additem:hover{background:#ec971f;}
 
-.btn-pay {
-  background: #5cb85c;
-  color: white;
-  border: none;
+/* --- Popups --- */
+#payPopup, #irregularPopup, #addItemPopup {
+  position:fixed; top:0; left:0; width:100%; height:100%; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); z-index:999;
 }
-
-.btn-pay:hover {
-  background: #4cae4c;
+#payPopupContent, #irregularPopupContent, #addItemPopupContent {
+  background:#fff; padding:20px; border-radius:8px; width:320px; max-width:90%; box-shadow:0 4px 8px rgba(0,0,0,0.2);
 }
+#irregularPopupContent button.option-btn { margin:4px; padding:6px 10px; cursor:pointer; border-radius:6px; border:1px solid #ccc; background:#f7f7f7; }
+#irregularPopupContent button.option-btn.active { background:#0275d8; color:white; border:none; }
 
-/* --- LOGIN BLOCKING OVERLAY --- */
-/* NOTE: This blocks ALL interaction until login succeeds */
-#loginPopup {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  display: flex; /* visible on first load */
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
+/* --- Login Overlay (blocks UI until login) --- */
+#loginOverlay {
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background: rgba(0,0,0,0.6); z-index:2000;
 }
+#loginBox {
+  background:#fff; padding:20px; border-radius:8px; width:340px; box-shadow:0 8px 20px rgba(0,0,0,0.4);
+}
+#loginBox h3 { margin-top:0; }
+#loginMsg { min-height:18px; }
 
-#loginPopupContent {
-  background: #fff;
-  padding: 24px;
-  border-radius: 10px;
-  width: 280px;
+/* small responsive tweak */
+@media (max-width:420px){
+  body { padding:12px; }
+  #loginBox { width:92%; }
+  .row { flex-direction:column; }
 }
