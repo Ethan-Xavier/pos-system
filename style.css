@@ -1,66 +1,25 @@
-/* --- Base Styles --- */
-body {
-  font-family: system-ui, Arial, sans-serif;
-  padding: 24px;
-  max-width: 1000px;
-  margin: 0 auto;
-  background: #fafafa;
-  color: #333;
+/* --- Login Popup --- */
+#loginPopup {
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,0.6);
+  z-index:1000;
 }
 
-/* Headings */
-h2, h3 { margin-top:0; margin-bottom:12px; font-weight:700; }
-
-/* --- Forms --- */
-label { display:block; margin-top:10px; font-weight:600; }
-input, select, button {
-  padding:8px; font-size:14px; width:100%; box-sizing:border-box;
-  border:1px solid #ccc; border-radius:6px;
-}
-input:focus, select:focus {
-  outline:none; border-color:#0275d8; box-shadow:0 0 3px rgba(2,117,216,0.5);
+#loginPopupContent{
+  background:#fff;
+  padding:20px;
+  border-radius:8px;
+  width:260px;
 }
 
-/* --- Layout --- */
-.row { display:flex; gap:8px; margin-top:8px; }
-.row > * { flex:1; }
-.card { border:1px solid #eee; padding:16px; border-radius:8px; margin-top:16px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
-pre { background:#f7f7f7; padding:12px; border-radius:6px; overflow:auto; max-height:240px; }
-
-/* --- Tables & Orders --- */
-.table-box { border:1px solid #aaa; border-radius:8px; padding:12px; margin-bottom:16px; background:#fdfdfd; }
-.table-title { font-weight:700; font-size:16px; margin-bottom:8px; color:#333; cursor:pointer; }
-
-/* --- Timestamp styling for tables and order tags --- */
-.table-title, .tag-header { font-size:14px; color:#666; }
-
-/* --- Individual Orders --- */
-.order-tag-box { border:1px solid #bbb; border-radius:6px; padding:8px; margin:8px 0; background:#eef; }
-.tag-header { font-weight:600; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
-.tag-buttons { display:flex; gap:6px; }
-
-.order-box { border:1px solid #ccc; border-radius:6px; padding:6px; margin:4px 0; background:#f7f7ff; cursor:pointer; }
-.order-total { margin-top:6px; font-weight:600; text-align:right; }
-
-/* --- Buttons --- */
-button { font-weight:600; cursor:pointer; transition:background 0.2s; }
-.btn-cancel { background:#d9534f; color:white; border:none; padding:6px 10px; border-radius:6px; }
-.btn-cancel:hover{background:#c9302c;}
-.btn-pay { background:#5cb85c; color:white; border:none; padding:6px 10px; border-radius:6px; }
-.btn-pay:hover{background:#4cae4c;}
-.btn-move { background:#0275d8; color:white; border:none; padding:6px 10px; border-radius:6px; }
-.btn-move:hover{background:#025aa5;}
-.btn-irregular { background:#000; color:white; border:none; padding:6px 10px; border-radius:6px; }
-.btn-irregular:hover{background:#333;}
-.btn-additem { background:#f0ad4e; color:white; border:none; padding:6px 10px; border-radius:6px; }
-.btn-additem:hover{background:#ec971f;}
-
-/* --- Popups --- */
-#payPopup, #irregularPopup, #addItemPopup {
-  position:fixed; top:0; left:0; width:100%; height:100%; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); z-index:999;
+/* Waiter name */
+.waiter-name{
+  color:#0275d8;
+  font-weight:600;
+  cursor:pointer;
+  margin-left:6px;
 }
-#payPopupContent, #irregularPopupContent, #addItemPopupContent {
-  background:#fff; padding:20px; border-radius:8px; width:320px; max-width:90%; box-shadow:0 4px 8px rgba(0,0,0,0.2);
-}
-#irregularPopupContent button.option-btn { margin:4px; padding:6px 10px; cursor:pointer; border-radius:6px; border:1px solid #ccc; background:#f7f7f7; }
-#irregularPopupContent button.option-btn.active { background:#0275d8; color:white; border:none; }
